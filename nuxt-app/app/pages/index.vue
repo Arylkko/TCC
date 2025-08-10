@@ -1,23 +1,34 @@
 <script setup>
 const { $pb } = useNuxtApp();
-const posts = ref([]);
+const userName = ref('');
+const isValid = ref(false);
 
-try {
-   posts.value = await $pb.collection('posts').getFullList();
-} catch (error) {
-  console.error("Deu ruim pra buscar os posts:", error);
-}
 
+
+onMounted(async () => {
+  const jwt = localStorage.getItem('pb_jwt');
+  if (!jwt) {
+    return navigateTo('/login');
+  }
+  
+  $pb.authStore.save(jwt, null);
+
+  try {
+
+    const user = await $pb.collection('users').authRefresh();
+    userName.value = user.record.name || 'Usuário';
+    isValid.value = true;
+  } catch (error) {
+    navigateTo('/login');
+  }
+});
 </script>
 
 <template>
   <div>
-    <h1>Meus Posts</h1>
-    <ul>
-      <li v-for="post in posts" :key="post.id">
-        <h2>{{ post.title }}</h2>
-        <p>{{ post.content }}</p>
-      </li>
-    </ul>
+    <div v-if="isValid">
+      <h1>Bem-vindo, {{ userName }}!</h1>
+    </div>
+    
   </div>
 </template>
