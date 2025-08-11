@@ -42,6 +42,7 @@ async function salvarReview() {
   } catch (error) {
     mensagemStatus.value = 'Ocorreu um erro ao salvar a nota.';
     console.error("Erro ao salvar nota:", error);
+    console.log(review.value, " - ", $pb.authStore.model.id);
   }
 }
 </script>
