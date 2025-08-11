@@ -9,7 +9,6 @@ const loading = ref(false);
 const error = ref('');
 const saveStatus = ref({}); // status de salvamento por livro
 
-const apiKey = 'AIzaSyDBgUZYgLwoyJWJI40AqGBEcICNlSJXzZc';
 
 function sortBooks(items) {
   return [...items].sort((a, b) => {
