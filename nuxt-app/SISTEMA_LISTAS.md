@@ -48,8 +48,6 @@ Primeiro, configure as seguintes coleções no PocketBase:
 **Coleção: livro**
 - Nome: text (obrigatório)
 - ISBN: text (obrigatório, único)
-- Autor: text (opcional)
-- Capa: url (opcional)
 - AvaliacaoMedia: number (opcional, padrão: 0)
 - TotalAvaliacoes: number (opcional, padrão: 0)
 
