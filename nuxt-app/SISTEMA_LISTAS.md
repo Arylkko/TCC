@@ -87,8 +87,6 @@ livro
 ├── id
 ├── Nome
 ├── ISBN (único)
-├── Autor
-├── Capa
 ├── AvaliacaoMedia
 ├── TotalAvaliacoes
 ├── created
