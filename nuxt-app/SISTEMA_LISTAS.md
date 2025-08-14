@@ -115,5 +115,4 @@ listas
 - [ ] Sistema de reviews/notas para livros
 - [ ] Compartilhamento de listas públicas
 - [ ] Busca e filtros avançados
-- [ ] Importação/exportação de listas
 - [ ] Sistema de tags para categorização
