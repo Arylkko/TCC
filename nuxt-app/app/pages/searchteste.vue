@@ -14,7 +14,7 @@ const minhasListas = ref([]);
 const mostrarModalListas = ref(false);
 const livroSelecionado = ref(null);
 
-<<<<<<< HEAD
+
 const apiKey = '';
 
 
