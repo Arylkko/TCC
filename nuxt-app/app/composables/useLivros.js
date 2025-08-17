@@ -2,6 +2,31 @@
 export const useLivros = () => {
   const { $pb } = useNuxtApp();
 
+  // Busca informações do livro na API do Google Books usando ISBN
+  const buscarDadosLivroAPI = async (isbn) => {
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+      const data = await response.json();
+      
+      if (data.items && data.items.length > 0) {
+        const livro = data.items[0].volumeInfo;
+        return {
+          sucesso: true,
+          dados: {
+            autor: livro.authors ? livro.authors.join(', ') : 'Autor não informado',
+            capa: livro.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+            titulo: livro.title || '',
+            descricao: livro.description || ''
+          }
+        };
+      }
+      
+      return { sucesso: false, erro: 'Livro não encontrado na API' };
+    } catch (error) {
+      console.error('Erro ao buscar dados do livro na API:', error);
+      return { sucesso: false, erro: 'Erro ao conectar com a API' };
+    }
+  };
 
   const buscarLivroPorISBN = async (isbn) => {
     try {
@@ -23,11 +48,12 @@ export const useLivros = () => {
       const existente = await buscarLivroPorISBN(dadosLivro.ISBN);
       
       if (existente.sucesso) {
-        return { sucesso: false, erro: 'Livro já existe no banco de dados', dados: existente.dados };
+        // Se já existe, retorna o livro existente como sucesso
+        return { sucesso: true, dados: existente.dados, jaExistia: true };
       }
 
       const livro = await $pb.collection('livro').create(dadosLivro);
-      return { sucesso: true, dados: livro };
+      return { sucesso: true, dados: livro, jaExistia: false };
     } catch (error) {
       console.error('Erro ao salvar livro:', error);
       return { sucesso: false, erro: error.message || 'Erro ao salvar livro' };
@@ -50,6 +76,7 @@ export const useLivros = () => {
   return {
     buscarLivroPorISBN,
     salvarLivro,
-    buscarTodosLivros
+    buscarTodosLivros,
+    buscarDadosLivroAPI
   };
 };

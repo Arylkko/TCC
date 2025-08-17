@@ -124,19 +124,18 @@ const formatarData = (dataString) => {
 </script>
 
 <template>
-  <div class="criar-listas-container">
+  <div>
     <h1>Gerenciar Minhas Listas</h1>
 
-    
-    <div v-if="mensagem" :class="['mensagem', tipoMensagem]">
+    <div v-if="mensagem">
       {{ mensagem }}
     </div>
 
     <!-- Formulário para criar nova lista -->
-    <div class="formulario-container">
+    <div>
       <h2>Criar Nova Lista</h2>
-      <form @submit.prevent="handleCriarLista" class="formulario-lista">
-        <div class="campo">
+      <form @submit.prevent="handleCriarLista">
+        <div>
           <label for="nome-lista">Nome da Lista *</label>
           <input
             id="nome-lista"
@@ -148,7 +147,7 @@ const formatarData = (dataString) => {
           />
         </div>
 
-        <div class="campo">
+        <div>
           <label for="descricao-lista">Descrição (opcional)</label>
           <textarea
             id="descricao-lista"
@@ -159,7 +158,7 @@ const formatarData = (dataString) => {
           ></textarea>
         </div>
 
-        <div class="campo-checkbox">
+        <div>
           <input
             id="lista-publica"
             v-model="listaPublica"
@@ -169,56 +168,52 @@ const formatarData = (dataString) => {
           <label for="lista-publica">Tornar esta lista pública</label>
         </div>
 
-        <div class="botoes">
-          <button type="submit" :disabled="loading" class="botao-principal">
+        <div>
+          <button type="submit" :disabled="loading">
             <span v-if="loading">Criando...</span>
             <span v-else>Criar Lista</span>
           </button>
-          <button type="button" @click="limparFormulario" :disabled="loading" class="botao-secundario">
+          <button type="button" @click="limparFormulario" :disabled="loading">
             Limpar
           </button>
         </div>
       </form>
     </div>
 
-   
-    <div class="minhas-listas-container">
+    <div>
       <h2>Minhas Listas</h2>
       
-      <div v-if="loading && minhasListas.length === 0" class="loading">
+      <div v-if="loading && minhasListas.length === 0">
         Carregando suas listas...
       </div>
 
-      <div v-else-if="minhasListas.length === 0" class="sem-listas">
+      <div v-else-if="minhasListas.length === 0">
         <p>Você ainda não criou nenhuma lista.</p>
         <p>Crie sua primeira lista usando o formulário acima!</p>
       </div>
 
-      <div v-else class="listas-grid">
-        <div v-for="lista in minhasListas" :key="lista.id" class="card-lista">
-          <div class="card-header">
+      <div v-else>
+        <div v-for="lista in minhasListas" :key="lista.id">
+          <div>
             <h3>{{ lista.nome }}</h3>
-            <span class="data-criacao">{{ formatarData(lista.created) }}</span>
+            <span>{{ formatarData(lista.created) }}</span>
           </div>
           
-          <div class="card-body">
-            <p v-if="lista.descricao" class="descricao">{{ lista.descricao }}</p>
-            <p v-else class="sem-descricao">Sem descrição</p>
+          <div>
+            <p v-if="lista.descricao">{{ lista.descricao }}</p>
+            <p v-else>Sem descrição</p>
             
-            <div class="info-lista">
-              <span class="livros-count">{{ lista.livros?.length || 0 }} livros</span>
-              <span :class="['visibilidade', lista.publica ? 'publica' : 'privada']">
-                {{ lista.publica ? 'Pública' : 'Privada' }}
-              </span>
+            <div>
+              <span>{{ lista.livros?.length || 0 }} livros</span>
+              <span>{{ lista.publica ? 'Pública' : 'Privada' }}</span>
             </div>
           </div>
 
-          <div class="card-actions">
-            <button class="botao-editar" @click="$router.push(`/lista/${lista.id}`)">
+          <div>
+            <button @click="$router.push(`/lista/${lista.id}`)">
               Ver/Editar
             </button>
             <button 
-              class="botao-deletar" 
               @click="handleDeletarLista(lista.id, lista.nome)"
               :disabled="loading"
             >
@@ -230,281 +225,3 @@ const formatarData = (dataString) => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.criar-listas-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.mensagem {
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-weight: 500;
-}
-
-.mensagem.sucesso {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.mensagem.erro {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-.formulario-container {
-  background: #f8f9fa;
-  padding: 25px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.formulario-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.campo label {
-  font-weight: 600;
-  color: #333;
-}
-
-.campo input,
-.campo textarea {
-  padding: 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.3s;
-}
-
-.campo input:focus,
-.campo textarea:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-.campo-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.campo-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-}
-
-.botoes {
-  display: flex;
-  gap: 15px;
-  margin-top: 10px;
-}
-
-.botao-principal {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.botao-principal:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-.botao-principal:disabled {
-  background: #6c757d;
-  cursor: not-allowed;
-}
-
-.botao-secundario {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.botao-secundario:hover:not(:disabled) {
-  background: #545b62;
-}
-
-.minhas-listas-container h2 {
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.loading,
-.sem-listas {
-  text-align: center;
-  padding: 40px;
-  color: #666;
-}
-
-.listas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.card-lista {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.card-lista:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 15px;
-}
-
-.card-header h3 {
-  margin: 0;
-  color: #333;
-  font-size: 18px;
-}
-
-.data-criacao {
-  font-size: 12px;
-  color: #666;
-  white-space: nowrap;
-}
-
-.card-body {
-  margin-bottom: 20px;
-}
-
-.descricao {
-  color: #555;
-  margin-bottom: 15px;
-  line-height: 1.4;
-}
-
-.sem-descricao {
-  color: #999;
-  font-style: italic;
-  margin-bottom: 15px;
-}
-
-.info-lista {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-}
-
-.livros-count {
-  color: #666;
-  font-weight: 500;
-}
-
-.visibilidade {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.visibilidade.publica {
-  background: #d1ecf1;
-  color: #0c5460;
-}
-
-.visibilidade.privada {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.card-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.botao-editar {
-  flex: 1;
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.botao-editar:hover {
-  background: #218838;
-}
-
-.botao-deletar {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.botao-deletar:hover:not(:disabled) {
-  background: #c82333;
-}
-
-.botao-deletar:disabled {
-  background: #6c757d;
-  cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-  .criar-listas-container {
-    padding: 15px;
-  }
-  
-  .listas-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .botoes {
-    flex-direction: column;
-  }
-  
-  .card-header {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .card-actions {
-    flex-direction: column;
-  }
-}
-</style>
