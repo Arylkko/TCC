@@ -29,12 +29,23 @@ export default defineConfig({
             'texto': '#4E3939',
             'roxo': '#A68DAD',
         },
-    },
-
-    // Shortcuts são atalhos para um grupo de classes
+    },    // Shortcuts são atalhos para um grupo de classes
     shortcuts: [
+        // Cards e containers
         ['destaque', 'bg-incipit-card text-texto text-center rounded-[30px] shadow-lg p-y-2 p-x-8'],
         ['card', 'bg-incipit-card text-texto rounded-[30px] shadow-xl flex flex-col items-center justify-between text-center p-6'],
-        ['botao', 'bg-roxo text-texto py-1 px-3 rounded-full border-0 hover:brightness-90 transition']
+        ['auth-card', 'bg-incipit-card text-texto rounded-[30px] shadow-xl p-8 w-full max-w-md'],
+        
+        // Botões
+        ['botao', 'bg-roxo text-branco py-2 px-6 rounded-full border-0 hover:brightness-90 transition cursor-pointer font-medium'],
+        ['btn-primary', 'bg-roxo text-branco py-3 px-8 rounded-full border-0 hover:brightness-90 transition cursor-pointer font-medium w-full'],
+        ['btn-link', 'text-roxo hover:underline cursor-pointer'],
+        
+        // Inputs
+        ['input-field', 'w-full px-4 py-3 rounded-lg bg-incipit-base text-texto placeholder-texto/60 border-none outline-none focus:ring-2 focus:ring-roxo/50'],
+        
+        // Texto
+        ['title-lg', 'text-3xl font-bold text-texto mb-6 text-center'],
+        ['label-text', 'text-texto text-sm mb-2 block'],
     ]
 })
