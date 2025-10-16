@@ -15,5 +15,12 @@
     "pocketbase-nuxt": "^0.0.3",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@iconify-json/mdi": "^1.2.3",
+    "@unocss/nuxt": "^66.5.4",
+    "@unocss/preset-icons": "^66.5.4",
+    "@unocss/preset-wind3": "^66.5.4",
+    "unocss": "^66.5.4"
   }
 }
