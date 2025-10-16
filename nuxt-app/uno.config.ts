@@ -5,6 +5,7 @@ import presetWind3 from '@unocss/preset-wind3'
 
 export default defineConfig({
     presets: [
+        // Preset Wind3 para utilitários similares ao Tailwind CSS
         presetWind3(),
         presetAttributify(),
         // Permite o uso de ícones como classes (exige instalação adicional)
