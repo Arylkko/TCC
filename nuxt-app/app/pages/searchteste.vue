@@ -5,6 +5,7 @@ import { useListas } from '~/composables/useListas';
 
 const { $pb } = useNuxtApp();
 const route = useRoute();
+const config = useRuntimeConfig();
 
 const searchTerm = ref('');
 const results = ref([]);
@@ -16,8 +17,8 @@ const mostrarModalListas = ref(false);
 const livroSelecionado = ref(null);
 const listaEspecifica = ref(null); // Para quando vier de uma lista específica
 
-
-const apiKey = '';
+// API Key do Google Books via variável de ambiente
+const apiKey = config.public.googleBooksApiKey;
 
 
 const { salvarLivro } = useLivros();
@@ -84,7 +85,6 @@ async function salvarLivroNoBanco(item) {
   const dadosLivro = {
     Nome: nome,
     ISBN: isbn
-    // Nota: Avaliações do Google Books removidas - sistema usará avaliações internas
   };
 
   console.log('Dados do livro para salvar:', dadosLivro);

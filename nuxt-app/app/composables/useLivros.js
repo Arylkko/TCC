@@ -1,11 +1,17 @@
 
 export const useLivros = () => {
   const { $pb } = useNuxtApp();
+  const config = useRuntimeConfig();
 
   // Busca informações do livro na API do Google Books usando ISBN
   const buscarDadosLivroAPI = async (isbn) => {
     try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+      const apiKey = config.public.googleBooksApiKey;
+      const url = apiKey 
+        ? `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${apiKey}`
+        : `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+      
+      const response = await fetch(url);
       const data = await response.json();
       
       if (data.items && data.items.length > 0) {

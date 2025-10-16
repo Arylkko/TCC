@@ -7,9 +7,19 @@ export default defineNuxtConfig({
     '@unocss/nuxt'
   ],
 
+  runtimeConfig: {
+    // Variáveis privadas (apenas server-side)
+    // apiSecret: '',
+
+    // Variáveis públicas (acessíveis no client)
+    public: {
+      googleBooksApiKey: process.env.NUXT_PUBLIC_GOOGLE_BOOKS_API_KEY,
+      pocketbaseUrl: process.env.NUXT_PUBLIC_POCKETBASE_URL || 'http://127.0.0.1:8090',
+    }
+  },
   
   pocketbase: {
-    url: 'http://127.0.0.1:8090',
+    url: process.env.NUXT_PUBLIC_POCKETBASE_URL || 'http://127.0.0.1:8090',
   }
 })
 
