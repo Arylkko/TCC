@@ -1,11 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useLivros } from '~/composables/useLivros';
 import { useListas } from '~/composables/useListas';
+import { useSearch } from '~/composables/useSearch';
 
 const { $pb } = useNuxtApp();
 const route = useRoute();
-const config = useRuntimeConfig();
 
 const searchTerm = ref('');
 const results = ref([]);
@@ -17,15 +17,20 @@ const mostrarModalListas = ref(false);
 const livroSelecionado = ref(null);
 const listaEspecifica = ref(null); // Para quando vier de uma lista específica
 const searchExpanded = ref(false); // Controla se o campo de busca está expandido
-const searchType = ref('livros'); // 'livros' ou 'comunidades'
+const searchType = ref('livros'); // 'livros
 const sortBy = ref('relevancia'); // 'relevancia', 'data', 'nota'
 
-// API Key do Google Books via variável de ambiente
-const apiKey = config.public.googleBooksApiKey;
+// Infinite scroll
+const startIndex = ref(0);
+const maxResults = ref(20); // Quantidade de livros por página
+const totalItems = ref(0);
+const loadingMore = ref(false);
+const hasMore = ref(true);
 
-
+// Composables
 const { salvarLivro } = useLivros();
 const { buscarListasUsuario, adicionarLivroNaLista } = useListas();
+const { buscarLivros, prepararDadosLivro } = useSearch();
 
 
 onMounted(async () => {
@@ -46,55 +51,105 @@ onMounted(async () => {
       minhasListas.value = resultado.dados;
     }
   }
+
+  // Adicionar listener para infinite scroll
+  window.addEventListener('scroll', handleScroll);
 });
+
+// Remover listener ao desmontar componente
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
+
+// Detectar quando usuário chega ao final da página
+function handleScroll() {
+  const scrollPosition = window.innerHeight + window.scrollY;
+  const pageHeight = document.documentElement.scrollHeight;
+  
+  // Se chegou a 80% do final da página e não está carregando
+  if (scrollPosition >= pageHeight * 0.8 && !loadingMore.value && hasMore.value && results.value.length > 0) {
+    loadMoreBooks();
+  }
+}
 
 
 async function searchBooks() {
   error.value = '';
   results.value = [];
+  startIndex.value = 0;
+  hasMore.value = true;
+  
   if (!searchTerm.value.trim()) return;
   loading.value = true;
+  
   try {
-    const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchTerm.value)}&key=${apiKey}`
+    const resultado = await buscarLivros(
+      searchTerm.value, 
+      startIndex.value, 
+      maxResults.value
     );
-    const data = await res.json();
-    if (Array.isArray(data.items)) {
-      results.value = data.items; // Removida a ordenação por avaliação
+    
+    if (resultado.sucesso) {
+      results.value = resultado.dados;
+      totalItems.value = resultado.totalItems || 0;
+      startIndex.value = maxResults.value;
+      
+      // Verifica se há mais resultados
+      hasMore.value = results.value.length < totalItems.value;
     } else {
-      results.value = [];
-      error.value = 'Nenhum livro encontrado.';
+      error.value = resultado.erro || 'Nenhum livro encontrado.';
+      hasMore.value = false;
     }
   } catch (e) {
+    console.error('Erro ao buscar livros:', e);
     error.value = 'Erro ao buscar livros.';
-    results.value = [];
+    hasMore.value = false;
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadMoreBooks() {
+  if (loadingMore.value || !hasMore.value) return;
+  
+  loadingMore.value = true;
+  
+  try {
+    const resultado = await buscarLivros(
+      searchTerm.value,
+      startIndex.value,
+      maxResults.value
+    );
+    
+    if (resultado.sucesso && resultado.dados.length > 0) {
+      results.value = [...results.value, ...resultado.dados];
+      startIndex.value += resultado.dados.length;
+      
+      // Verifica se há mais resultados
+      hasMore.value = results.value.length < totalItems.value;
+    } else {
+      hasMore.value = false;
+    }
+  } catch (e) {
+    console.error('Erro ao carregar mais livros:', e);
+    hasMore.value = false;
+  } finally {
+    loadingMore.value = false;
   }
 }
 
 async function salvarLivroNoBanco(item) {
   const id = item.id;
   saveStatus.value[id] = 'salvando';
-  const volume = item.volumeInfo;
-  const nome = volume.title;
 
-  let isbn = '';
-  if (Array.isArray(volume.industryIdentifiers)) {
-    const isbnObj = volume.industryIdentifiers.find(i => i.type && i.identifier);
-    if (isbnObj) isbn = isbnObj.identifier;
-  }
+  // Usar composable para preparar dados
+  const dadosLivro = prepararDadosLivro(item);
 
-  if (!nome || !isbn) {
+  if (!dadosLivro) {
     saveStatus.value[id] = 'erro';
-    console.log('Erro: Nome ou ISBN não encontrados', { nome, isbn });
+    console.log('Erro: Nome ou ISBN não encontrados');
     return { sucesso: false, erro: 'Nome ou ISBN não encontrados' };
   }
-
-  const dadosLivro = {
-    Nome: nome,
-    ISBN: isbn
-  };
 
   console.log('Dados do livro para salvar:', dadosLivro);
   const resultado = await salvarLivro(dadosLivro);
@@ -240,7 +295,9 @@ async function adicionarLivroALista(listaId) {
       <div class="max-w-screen-xl mx-auto mb-6">        <div v-if="results.length > 0" class="text-center mb-6">
           <!-- Contador de resultados -->
           <h2 class="text-3xl text-texto mb-4">
-            <span class="font-bold">{{ results.length }} resultados</span> para
+            <span class="font-bold">{{ results.length }}</span>
+            <span v-if="totalItems > 0" class="text-texto/70"> de {{ totalItems }}</span>
+            <span class="font-normal"> resultados para</span>
           </h2>
           
           <!-- Filtros superiores -->
@@ -253,13 +310,6 @@ async function adicionarLivroALista(listaId) {
                 class="px-4 py-1.5 rounded-md text-sm transition-all font-medium"
               >
                 Livros
-              </button>
-              <button 
-                @click="searchType = 'comunidades'"
-                :class="searchType === 'comunidades' ? 'bg-branco text-texto shadow-sm' : 'text-texto/60 hover:text-texto'"
-                class="px-4 py-1.5 rounded-md text-sm transition-all font-medium"
-              >
-                Comunidades
               </button>
             </div>
           </div>
@@ -371,9 +421,20 @@ async function adicionarLivroALista(listaId) {
               </p>
               <h3 class="text-sm font-medium text-texto line-clamp-2" :title="item.volumeInfo.title">
                 {{ item.volumeInfo.title }}
-              </h3>
-            </div>
+              </h3>            </div>
           </div>
+        </div>
+
+        <!-- Indicador de loading para infinite scroll -->
+        <div v-if="loadingMore" class="text-center py-8">
+          <div class="inline-block animate-spin i-mdi:loading text-3xl text-roxo"></div>
+          <p class="text-texto mt-2 text-sm">Carregando mais livros...</p>
+        </div>
+
+        <!-- Mensagem de fim dos resultados -->
+        <div v-if="!hasMore && results.length > 0 && !loading" class="text-center py-8">
+          <div class="i-mdi:check-circle text-3xl text-roxo/60 mb-2"></div>
+          <p class="text-texto/60 text-sm">Todos os resultados foram carregados</p>
         </div>
       </div>
     </main>
@@ -417,51 +478,5 @@ async function adicionarLivroALista(listaId) {
   </div>
 </template>
 
-<style scoped>
-/* Truncar texto em múltiplas linhas */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+<style src="~/styles/pages/search.css"></style>
 
-/* Animação de loading */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-/* Animação de pulse para o ícone de busca durante loading */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Transição suave para expansão do campo de busca */
-input:focus {
-  box-shadow: 0 0 0 3px rgba(166, 141, 173, 0.1);
-}
-
-/* Melhorar aparência dos botões de filtro */
-button {
-  font-family: inherit;
-}
-</style>

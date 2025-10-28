@@ -1,0 +1,146 @@
+/* ===========================================
+   PÁGINA DE BUSCA - ESTILOS
+   =========================================== */
+
+/* Truncar texto em múltiplas linhas */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Animação de loading (spinner) */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Animação de pulse para o ícone de busca durante loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Transição suave para expansão do campo de busca */
+.search-input:focus {
+  box-shadow: 0 0 0 3px rgba(166, 141, 173, 0.1);
+}
+
+/* Melhorar aparência dos botões de filtro */
+.filter-button {
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.filter-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Cards de livros com efeito hover */
+.book-card {
+  transition: all 0.3s ease;
+}
+
+.book-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Overlay de ações do card */
+.book-overlay {
+  transition: opacity 0.3s ease;
+}
+
+/* Grid responsivo de livros */
+.books-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .books-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .books-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .books-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* Modal de listas */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Estado de carregamento */
+.loading-indicator {
+  animation: spin 1s linear infinite;
+}
+
+/* Mensagem de fim dos resultados */
+.end-message {
+  animation: fadeIn 0.5s ease;
+}
+
+/* Botão de scroll to top (se adicionar no futuro) */
+.scroll-to-top {
+  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.scroll-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+}

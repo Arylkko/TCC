@@ -1,0 +1,311 @@
+/* ===========================================
+   PÁGINA DE CADASTRO - ESTILOS
+   =========================================== */
+
+/* Padrão de livros no fundo */
+.bg-incipit-fundo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234E3939' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* Customizar radio buttons */
+input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-roxo, #A68DAD);
+}
+
+input[type="radio"]:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* Card de cadastro com animação */
+.signup-card {
+  animation: fadeInScale 0.5s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Seções do formulário */
+.form-section {
+  transition: all 0.3s ease;
+}
+
+/* Labels dos radio buttons */
+.radio-label {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.radio-label:hover {
+  background-color: rgba(166, 141, 173, 0.05);
+  transform: translateX(2px);
+}
+
+/* Radio button selecionado */
+input[type="radio"]:checked + .radio-label {
+  background-color: rgba(166, 141, 173, 0.1);
+  border-color: var(--color-roxo, #A68DAD);
+}
+
+/* Indicador de força da senha */
+.password-strength {
+  height: 4px;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.password-strength.weak {
+  background: linear-gradient(to right, #ef4444 0%, #ef4444 33%, #e5e7eb 33%);
+}
+
+.password-strength.medium {
+  background: linear-gradient(to right, #f59e0b 0%, #f59e0b 66%, #e5e7eb 66%);
+}
+
+.password-strength.strong {
+  background: linear-gradient(to right, #10b981 0%, #10b981 100%);
+}
+
+/* Botão de cadastro */
+.signup-button {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.signup-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.signup-button:hover::before {
+  width: 400px;
+  height: 400px;
+}
+
+.signup-button:active {
+  transform: scale(0.97);
+}
+
+/* Mensagem de sucesso */
+.success-message {
+  animation: successSlide 0.5s ease;
+}
+
+@keyframes successSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mensagem de erro */
+.error-message {
+  animation: errorShake 0.5s ease;
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-8px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(8px);
+  }
+}
+
+/* Inputs com validação */
+.input-valid {
+  border-color: #10b981 !important;
+}
+
+.input-invalid {
+  border-color: #ef4444 !important;
+}
+
+/* Ícone de validação no input */
+.validation-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.validation-icon.valid {
+  color: #10b981;
+}
+
+.validation-icon.invalid {
+  color: #ef4444;
+}
+
+/* Progress steps (se adicionar no futuro) */
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.progress-step {
+  flex: 1;
+  height: 4px;
+  background: #e5e7eb;
+  position: relative;
+  margin: 0 4px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-step.active {
+  background: var(--color-roxo, #A68DAD);
+}
+
+.progress-step.completed {
+  background: #10b981;
+}
+
+/* Tooltip para requisitos de senha */
+.password-requirements {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.password-requirements.visible {
+  opacity: 1;
+  max-height: 200px;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.requirement-met {
+  color: #10b981;
+}
+
+.requirement-unmet {
+  color: #6b7280;
+}
+
+/* Animação de foco nos inputs */
+.signup-input {
+  transition: all 0.3s ease;
+}
+
+.signup-input:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(166, 141, 173, 0.15);
+}
+
+/* Container do formulário */
+.signup-form-container {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.97);
+}
+
+/* Link para login */
+.login-link {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.login-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--color-roxo, #A68DAD);
+  transition: width 0.3s ease;
+}
+
+.login-link:hover::after {
+  width: 100%;
+}
+
+/* Efeito de loading no botão */
+.button-loading {
+  pointer-events: none;
+  opacity: 0.7;
+  position: relative;
+}
+
+.button-loading::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: 50%;
+  left: 50%;
+  margin-left: -9px;
+  margin-top: -9px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: buttonSpin 0.6s linear infinite;
+}
+
+@keyframes buttonSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Data de nascimento */
+.date-input {
+  cursor: pointer;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
