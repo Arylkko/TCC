@@ -27,13 +27,8 @@ async function login() {
 
 <template>
   <div class="min-h-screen bg-incipit-fundo overflow-hidden relative">
-    <!-- Header -->
-    <header class="h-full flex justify-between p-x-6 py-4 rounded-b-[40px] bg-incipit-base shadow-md"> 
-      <h1 class="text-2xl text-branco font-bold">Incipit</h1>
-      <div class="flex items-center space-x-4">
-        <div class="i-mdi:menu text-branco text-2xl cursor-pointer"></div>
-      </div>
-    </header>
+    <!-- Header Component -->
+    <Header variant="auth" />
 
     <!-- Background Pattern (opcional - você pode adicionar SVG de livros aqui) -->
     <div class="absolute inset-0 opacity-10 pointer-events-none">

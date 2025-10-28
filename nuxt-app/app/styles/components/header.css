@@ -1,0 +1,459 @@
+/* Header Component Styles */
+
+.header-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background-color: var(--incipit-dark);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Logo */
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo-text {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--incipit-texto);
+  transition: all 0.2s ease;
+}
+
+.logo-text:hover {
+  color: var(--incipit-primary);
+  transform: scale(1.05);
+}
+
+.logo-image {
+  height: 2.5rem;
+  width: auto;
+  transition: transform 0.2s ease;
+}
+
+.logo-image:hover {
+  transform: scale(1.05);
+}
+
+/* Search Bar */
+.search-container {
+  flex: 1;
+  max-width: 600px;
+  margin: 0 2rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  font-size: 1.25rem;
+  color: var(--incipit-texto);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  background-color: var(--incipit-background);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  color: var(--incipit-texto);
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--incipit-primary);
+  box-shadow: 0 0 0 3px rgba(220, 137, 47, 0.1);
+}
+
+.search-input::placeholder {
+  color: var(--incipit-texto);
+  opacity: 0.5;
+}
+
+.search-button {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--incipit-primary);
+  color: var(--incipit-background);
+  border: none;
+  border-radius: 9999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.search-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* User Menu */
+.user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--incipit-texto);
+  font-size: 1.75rem;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--incipit-primary);
+}
+
+.text-button {
+  padding: 0.5rem 1rem;
+  color: var(--incipit-texto);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.text-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--incipit-primary);
+}
+
+.primary-button {
+  padding: 0.5rem 1.5rem;
+  background-color: var(--incipit-primary);
+  color: var(--incipit-background);
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.primary-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  min-width: 200px;
+  background-color: var(--incipit-card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: var(--incipit-texto);
+  text-decoration: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--incipit-primary);
+}
+
+.dropdown-item div {
+  font-size: 1.25rem;
+}
+
+.dropdown-divider {
+  margin: 0.5rem 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-container {
+    padding: 1rem;
+  }
+
+  .search-container {
+    display: none;
+  }
+
+  .logo-image {
+    height: 2rem;
+  }
+
+  .user-menu {
+    gap: 0.5rem;
+  }
+
+  .icon-button {
+    font-size: 1.5rem;
+  }
+
+  .text-button {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .primary-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Simplified Header for Book Details Page (Warm Theme) */
+.header-livro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-radius: 0 0 40px 40px;
+  background-color: #C7B198;
+  box-shadow: 0 4px 12px rgba(78, 57, 57, 0.15);
+  margin-bottom: 2rem;
+}
+
+/* Variante para página de busca */
+.header-search-page {
+  background-color: #C7B198;
+}
+
+/* Variante para página de livro */
+.header-book-page {
+  background-color: #C7B198;
+}
+
+/* Variante para páginas de autenticação (login/cadastro) */
+.header-auth-page {
+  background-color: #C7B198;
+}
+
+.header-livro .logo-link {
+  text-decoration: none;
+}
+
+.header-livro .logo-text {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #E4E4E4;
+  transition: all 0.2s ease;
+}
+
+.header-livro .logo-text:hover {
+  color: #A68DAD;
+  transform: scale(1.05);
+}
+
+.search-form-livro {
+  flex: 1;
+  max-width: 32rem;
+  margin: 0 2rem;
+  transition: all 0.3s ease;
+}
+
+/* Campo de busca expansível */
+.search-form-livro.search-expandable {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.search-form-livro.search-expandable.search-expanded {
+  flex: 1;
+  max-width: 48rem;
+  margin: 0 2rem;
+}
+
+.search-wrapper-livro {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  transition: all 0.3s ease-in-out;
+}
+
+.search-expandable .search-wrapper-livro {
+  width: 18rem;
+}
+
+.search-expandable.search-expanded .search-wrapper-livro {
+  width: 100%;
+}
+
+.search-input-livro {
+  width: 100%;
+  padding: 0.625rem 3rem 0.625rem 1rem;
+  border-radius: 9999px;
+  background-color: #E4E4E4;
+  color: #4E3939;
+  border: none;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-input-livro::placeholder {
+  color: rgba(78, 57, 57, 0.6);
+}
+
+.search-input-livro:focus {
+  box-shadow: 0 0 0 3px rgba(166, 141, 173, 0.3);
+}
+
+.search-button-livro {
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #A68DAD;
+  color: #E4E4E4;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(166, 141, 173, 0.3);
+}
+
+.search-button-livro:hover {
+  filter: brightness(1.1);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.search-button-livro:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.search-button-livro div {
+  font-size: 1.25rem;
+}
+
+.user-menu-livro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: 1rem;
+}
+
+/* Menu simplificado para páginas de autenticação */
+.auth-menu-livro {
+  display: flex;
+  align-items: center;
+}
+
+.user-icon,
+.menu-icon {
+  font-size: 1.875rem;
+  color: #E4E4E4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-icon:hover,
+.menu-icon:hover {
+  color: #A68DAD;
+  transform: scale(1.1);
+}
+
+/* Animação de pulse para loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Responsive for simplified header */
+@media (max-width: 768px) {
+  .header-livro {
+    padding: 0.875rem 1rem;
+    border-radius: 0 0 30px 30px;
+  }
+
+  .search-form-livro {
+    display: none;
+  }
+
+  .header-livro .logo-text {
+    font-size: 1.5rem;
+  }
+
+  .user-icon,
+  .menu-icon {
+    font-size: 1.5rem;
+  }
+
+  .user-menu-livro {
+    gap: 0.75rem;
+    margin-left: 0.5rem;
+  }
+}

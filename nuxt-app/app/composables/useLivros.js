@@ -13,8 +13,7 @@ export const useLivros = () => {
       
       const response = await fetch(url);
       const data = await response.json();
-      
-      if (data.items && data.items.length > 0) {
+        if (data.items && data.items.length > 0) {
         const livro = data.items[0].volumeInfo;
         return {
           sucesso: true,
@@ -22,7 +21,10 @@ export const useLivros = () => {
             autor: livro.authors ? livro.authors.join(', ') : 'Autor não informado',
             capa: livro.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
             titulo: livro.title || '',
-            descricao: livro.description || ''
+            descricao: livro.description || '',
+            editora: livro.publisher || '',
+            dataPublicacao: livro.publishedDate || '',
+            paginas: livro.pageCount || 0
           }
         };
       }

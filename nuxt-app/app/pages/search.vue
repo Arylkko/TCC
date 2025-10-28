@@ -16,8 +16,7 @@ const minhasListas = ref([]);
 const mostrarModalListas = ref(false);
 const livroSelecionado = ref(null);
 const listaEspecifica = ref(null); // Para quando vier de uma lista específica
-const searchExpanded = ref(false); // Controla se o campo de busca está expandido
-const searchType = ref('livros'); // 'livros
+const searchType = ref('livros'); // 'livros'
 const sortBy = ref('relevancia'); // 'relevancia', 'data', 'nota'
 
 // Infinite scroll
@@ -165,6 +164,32 @@ async function salvarLivroNoBanco(item) {
   }
 }
 
+// Nova função: salva o livro e redireciona para página de detalhes
+async function verDetalhesLivro(item) {
+  console.log('Clicou no livro:', item.volumeInfo.title);
+  
+  // Salva o livro no banco primeiro
+  const resultado = await salvarLivroNoBanco(item);
+  
+  console.log('Resultado do salvamento:', resultado);
+  
+  if (resultado.sucesso) {
+    // Extrai o ISBN para usar na URL
+    const dadosLivro = prepararDadosLivro(item);
+    console.log('Dados do livro preparados:', dadosLivro);
+    
+    if (dadosLivro && dadosLivro.ISBN) {
+      // Redireciona para a página de detalhes
+      console.log('Redirecionando para:', `/livro/${dadosLivro.ISBN}`);
+      navigateTo(`/livro/${dadosLivro.ISBN}`);
+    } else {
+      alert('ISBN não encontrado para este livro.');
+    }
+  } else {
+    alert('Erro ao salvar livro: ' + resultado.erro);
+  }
+}
+
 // Abrir modal para selecionar lista
 function abrirModalListas(item) {
   if (!$pb.authStore.isValid) {
@@ -247,36 +272,15 @@ async function adicionarLivroALista(listaId) {
 
 <template>
   <div class="min-h-screen bg-incipit-fundo overflow-hidden relative">
-    <!-- Header -->    <header class="flex justify-between items-center p-x-6 py-4 rounded-b-[40px] bg-incipit-base shadow-md">
-      <NuxtLink to="/" class="text-2xl text-branco font-bold hover:opacity-90 transition">
-        Incipit
-      </NuxtLink>      <!-- Barra de pesquisa no header - com expansão -->
-      <form @submit.prevent="searchBooks" class="flex items-center justify-end transition-all duration-300" :class="(searchExpanded || searchTerm) ? 'flex-1 max-w-3xl mx-8' : ''">
-        <div class="relative transition-all duration-300 ease-in-out" 
-     :class="(searchExpanded || searchTerm) ? 'w-full' : 'w-72'">
-  <input 
-    v-model="searchTerm" 
-    type="text" 
-    placeholder="Pesquisar livros..." 
-    @focus="searchExpanded = true"
-    @blur="searchExpanded = false"
-    class="w-full pl-4 pr-12 py-2.5 rounded-full bg-branco text-texto placeholder-texto/60 border-none outline-none focus:ring-2 focus:ring-roxo/50 transition-all duration-300"
-  />
-  <button 
-    type="submit" 
-    :disabled="loading"
-    class="absolute right-1 top-1/2 -translate-y-1/2 bg-roxo text-branco w-9 h-9 rounded-full hover:brightness-90 transition disabled:opacity-50 flex items-center justify-center shadow-md"
-  >
-    <div class="i-mdi:magnify text-xl" :class="loading ? 'animate-pulse' : ''"></div>
-  </button>
-</div>
-      </form>
-
-      <div class="flex items-center space-x-4 ml-4">
-        <div class="i-mdi:account-circle text-branco text-3xl cursor-pointer"></div>
-        <div class="i-mdi:menu text-branco text-2xl cursor-pointer"></div>
-      </div>
-    </header>
+    <!-- Header Component -->
+    <Header
+      :show-search="true"
+      :expandable="true"
+      :loading="loading"
+      v-model:search-term="searchTerm"
+      @search="searchBooks"
+      variant="search"
+    />
 
     <!-- Botão voltar (se vier de uma lista) -->
     <div v-if="listaEspecifica" class="p-6">
@@ -366,10 +370,10 @@ async function adicionarLivroALista(listaId) {
         <div 
           v-if="!loading && results.length > 0" 
           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"
-        >
-          <div 
+        >          <div 
             v-for="item in results" 
             :key="item.id"
+            @click="verDetalhesLivro(item)"
             class="bg-incipit-card rounded-[20px] overflow-hidden shadow-lg hover:shadow-xl transition group cursor-pointer"
           >
             <!-- Capa do livro -->
@@ -386,31 +390,7 @@ async function adicionarLivroALista(listaId) {
               >
                 <div class="i-mdi:book text-6xl text-texto/30"></div>
               </div>
-              
-              <!-- Overlay com botões -->
-              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center space-y-2 p-4">
-                <button 
-                  @click="salvarLivroNoBanco(item)" 
-                  :disabled="saveStatus[item.id]==='salvando' || saveStatus[item.id]==='salvo'"
-                  class="bg-roxo text-branco px-4 py-2 rounded-full text-sm hover:brightness-90 transition disabled:opacity-50 w-full"
-                >
-                  <span v-if="saveStatus[item.id]==='salvando'">Salvando...</span>
-                  <span v-else-if="saveStatus[item.id]==='salvo'">✓ Salvo</span>
-                  <span v-else-if="saveStatus[item.id]==='erro'">Erro</span>
-                  <span v-else>Salvar</span>
-                </button>
-                
-                <button 
-                  v-if="$pb.authStore.isValid" 
-                  @click="abrirModalListas(item)"
-                  class="bg-branco text-texto px-4 py-2 rounded-full text-sm hover:brightness-90 transition w-full"
-                >
-                  + Lista
-                </button>
-              </div>
-            </div>
-
-            <!-- Info do livro -->
+            </div>            <!-- Info do livro -->
             <div class="p-3">
               <p class="text-xs text-texto/70 mb-1">
                 <span v-if="item.volumeInfo.authors">
@@ -419,9 +399,13 @@ async function adicionarLivroALista(listaId) {
                 </span>
                 <span v-else>Editora</span>
               </p>
-              <h3 class="text-sm font-medium text-texto line-clamp-2" :title="item.volumeInfo.title">
+              <h3 
+                class="text-sm font-medium text-texto line-clamp-2" 
+                :title="item.volumeInfo.title"
+              >
                 {{ item.volumeInfo.title }}
-              </h3>            </div>
+              </h3>
+            </div>
           </div>
         </div>
 
