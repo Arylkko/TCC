@@ -1,32 +1,43 @@
 // Composable para gerenciar comentários e respostas
 export const useComentarios = () => {
   const { $pb } = useNuxtApp();
-
   // Busca todos os comentários de um livro (apenas comentários principais, sem respostas)
   const buscarComentariosLivro = async (livroId) => {
     try {
       const comentarios = await $pb.collection('comentario').getList(1, 50, {
         filter: `livro = "${livroId}" && comentario_pai = ""`,
         expand: 'autor',
-        sort: '-created'
+        sort: '-created',
+        requestKey: `comentarios_livro_${livroId}` // Previne auto-cancellation
       });
       return { sucesso: true, dados: comentarios.items };
     } catch (error) {
+      // Ignora erro de auto-cancellation
+      if (error.isAbort) {
+        console.log('Requisição cancelada (normal):', livroId);
+        return { sucesso: true, dados: [] };
+      }
       console.error('Erro ao buscar comentários:', error);
       return { sucesso: false, erro: error.message || 'Erro ao buscar comentários' };
     }
   };
-
   // Busca respostas de um comentário específico
   const buscarRespostas = async (comentarioId) => {
     try {
+      // Adiciona requestKey único para evitar auto-cancellation
       const respostas = await $pb.collection('comentario').getList(1, 50, {
         filter: `comentario_pai = "${comentarioId}"`,
         expand: 'autor',
-        sort: 'created'
+        sort: 'created',
+        requestKey: `respostas_${comentarioId}` // Previne auto-cancellation
       });
       return { sucesso: true, dados: respostas.items };
     } catch (error) {
+      // Ignora erro de auto-cancellation
+      if (error.isAbort) {
+        console.log('Requisição cancelada (normal):', comentarioId);
+        return { sucesso: true, dados: [] };
+      }
       console.error('Erro ao buscar respostas:', error);
       return { sucesso: false, erro: error.message || 'Erro ao buscar respostas' };
     }

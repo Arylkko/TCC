@@ -196,12 +196,11 @@
               v-for="nota in notas" 
               :key="nota.id"
               class="review-item"
-            >
-              <div class="review-header">
+            >              <div class="review-header">
                 <div class="review-author">
                   <div class="i-mdi:account-circle author-icon"></div>
                   <span class="author-name">
-                    {{ nota.expand?.autor?.username || 'Usuário' }}
+                    {{ nota.expand?.autor?.name || nota.expand?.autor?.email || 'Usuário' }}
                   </span>
                 </div>
                 <div class="review-rating">
@@ -258,12 +257,11 @@
               v-for="comentario in comentarios" 
               :key="comentario.id"
               class="comment-item"
-            >
-              <div class="comment-header">
+            >              <div class="comment-header">
                 <div class="comment-author">
                   <div class="i-mdi:account-circle author-icon"></div>
                   <span class="author-name">
-                    {{ comentario.expand?.autor?.username || 'Usuário' }}
+                    {{ comentario.expand?.autor?.name || comentario.expand?.autor?.email || 'Usuário' }}
                   </span>
                 </div>
                 <span class="comment-date">{{ formatarData(comentario.created) }}</span>
@@ -312,12 +310,11 @@
                   v-for="resposta in comentario.respostas" 
                   :key="resposta.id"
                   class="reply-item"
-                >
-                  <div class="comment-header">
+                >                  <div class="comment-header">
                     <div class="comment-author">
                       <div class="i-mdi:account-circle author-icon"></div>
                       <span class="author-name">
-                        {{ resposta.expand?.autor?.username || 'Usuário' }}
+                        {{ resposta.expand?.autor?.name || resposta.expand?.autor?.email || 'Usuário' }}
                       </span>
                     </div>
                     <span class="comment-date">{{ formatarData(resposta.created) }}</span>
