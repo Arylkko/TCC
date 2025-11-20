@@ -65,7 +65,7 @@ async function createUser() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-incipit-fundo overflow-hidden relative">
+  <div class="min-h-screen bg-incipit-fundo overflow-hidden relative font-sono">
     <!-- Header Component -->
     <Header variant="auth" />
 
@@ -75,44 +75,42 @@ async function createUser() {
     <!-- Main Content -->
     <div class="relative z-10 flex items-center justify-center min-h-[calc(100vh-80px)] p-6">
       <div class="auth-card">
-        <h2 class="title-lg">Torne-se um leitor!</h2>
+        <h2 class="title-lg font-display">Torne-se um leitor!</h2>
         
         <form @submit.prevent="createUser" class="space-y-4">
+          <div class="space-y-6">
           <!-- Nome de Usuário -->
           <div>
-            <label for="name" class="label-text">User</label>
             <input 
               type="text" 
               id="name" 
               v-model="newUser.name" 
               placeholder="User"
-              class="input-field"
+              class="input-field box-border font-sono"
               required 
             />
           </div>
 
           <!-- Email -->
           <div>
-            <label for="email" class="label-text">Email</label>
             <input 
               type="email" 
               id="email" 
               v-model="newUser.email" 
               placeholder="Email"
-              class="input-field"
+              class="input-field box-border font-sono"
               required 
             />
           </div>
 
           <!-- Senha -->
           <div>
-            <label for="password" class="label-text">Senha</label>
             <input 
               type="password" 
               id="password" 
               v-model="newUser.password" 
               placeholder="Senha"
-              class="input-field"
+              class="input-field box-border font-sono"
               required
               minlength="8"
             />
@@ -120,16 +118,16 @@ async function createUser() {
 
           <!-- Confirmar Senha -->
           <div>
-            <label for="confirmPassword" class="label-text">Confirme sua senha</label>
             <input 
               type="password" 
               id="confirmPassword" 
               v-model="newUser.confirmPassword" 
               placeholder="Confirme sua senha"
-              class="input-field"
+              class="input-field box-border font-sono"
               required
               minlength="8"
             />
+          </div>
           </div>
 
           <!-- Você é um leitor novato? -->

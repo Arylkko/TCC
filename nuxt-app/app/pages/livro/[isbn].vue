@@ -1,5 +1,5 @@
 <template>
-  <div class="livro-page">
+  <div class="livro-page font-sono">
     <Header :show-search="true" />
 
     <main class="livro-container">
@@ -18,129 +18,166 @@
         </button>
       </div>
 
-      <!-- Book Content -->
-      <div v-else-if="livro" class="livro-content">
-        <!-- Book Header -->
-        <div class="livro-header">
-          <!-- Cover Image -->
-          <div class="livro-capa">
-            <img 
-              :src="dadosAPI.capa || '/placeholder-book.jpg'" 
-              :alt="livro.Nome"
-              class="capa-image"
-            >
-          </div>
+      <div v-else-if="livro" class="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Coluna Esquerda: Info do Livro -->
+          <div class="lg:col-span-2">
+            <div class="bg-incipit-card rounded-[30px] shadow-xl p-8">
+              <div class="flex flex-col md:flex-row gap-6">
+                <!-- Capa do Livro -->
+                <div class="flex-shrink-0">
+                  <div class="w-48 h-72 mx-auto md:mx-0">
+                    <img
+                      :src="dadosAPI.capa || '/placeholder-book.jpg'"
+                      :alt="livro.Nome"
+                      class="w-full h-full object-cover rounded-lg shadow-lg"
+                    />
 
-          <!-- Book Info -->
-          <div class="livro-info">
-            <h1 class="livro-titulo">{{ livro.Nome }}</h1>
-            
-            <p v-if="dadosAPI.autor" class="livro-autor">
-              <span class="label">Autor:</span> {{ dadosAPI.autor }}
-            </p>
+                    <!-- Botão de Status -->
 
-            <p v-if="dadosAPI.editora" class="livro-meta">
-              <span class="label">Editora:</span> {{ dadosAPI.editora }}
-            </p>
+                    <!-- Dropdown Status -->
+                    <div
+                      v-if="mostrarDropdownStatus"
+                      class="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl overflow-hidden z-20"
+                    >
+                      <button
+                        v-for="opcao in OPCOES_STATUS"
+                        :key="opcao.valor"
+                        @click="selecionarStatus(opcao.valor)"
+                        class="w-full px-4 py-2 text-left hover:bg-incipit-roxo/10 transition text-texto"
+                      >
+                        {{ opcao.label }}
+                      </button>
+                    </div>
+                  </div>
 
-            <p v-if="dadosAPI.dataPublicacao" class="livro-meta">
-              <span class="label">Publicação:</span> {{ dadosAPI.dataPublicacao }}
-            </p>
+                  <!-- Avaliação com Estrelas -->
+                  <div v-if="isAuthenticated" class="livro-status">
+                    <select
+                      id="status-select"
+                      v-model="statusAtual"
+                      @change="alterarStatus"
+                      class="status-select"
+                    >
+                      <option value="">Selecione um status</option>
+                      <option
+                        v-for="opcao in OPCOES_STATUS"
+                        :key="opcao.valor"
+                        :value="opcao.valor"
+                      >
+                        {{ opcao.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
 
-            <p v-if="dadosAPI.paginas" class="livro-meta">
-              <span class="label">Páginas:</span> {{ dadosAPI.paginas }}
-            </p>
+                <!-- Informações do Livro -->
+                <div class="flex-1">
+                  <h1 class="text-3xl md:text-4xl font-bold text-texto mb-2 font-display">
+                    {{ livro.Nome }}
+                  </h1>
+                  <h2 v-if="dadosAPI.autor" class="text-xl text-texto/80 mb-4">
+                    {{ dadosAPI.autor }}
+                  </h2>
 
-            <p class="livro-meta">
-              <span class="label">ISBN:</span> {{ livro.ISBN }}
-            </p>
+                  <div class="space-y-1 mb-4">
+                    <p v-if="dadosAPI.editora" class="text-sm text-texto/70">
+                      <span class="font-semibold">Editora:</span> {{ dadosAPI.editora }}
+                      <span v-if="dadosAPI.dataPublicacao"
+                        >, {{ dadosAPI.dataPublicacao }}</span
+                      >
+                    </p>
 
-            <!-- Rating -->
-            <div class="livro-rating">
-              <div class="rating-stars">
-                <div 
-                  v-for="n in 5" 
-                  :key="n"
-                  :class="['star', n <= Math.round(livro.AvaliacaoMedia || 0) ? 'star-filled' : 'star-empty']"
-                >
-                  <div class="i-mdi:star"></div>
+                    <p v-if="dadosAPI.paginas" class="text-sm text-texto/70">
+                      <span class="font-semibold">Páginas:</span> {{ dadosAPI.paginas }}
+                    </p>
+
+                    <p class="text-sm text-texto/70">
+                      <span class="font-semibold">ISBN:</span> {{ livro.ISBN }}
+                    </p>
+                  </div>
+
+                  <!-- Sinopse -->
+                  <div v-if="dadosAPI.descricao" class="mt-6">
+                    <h3 class="text-sm font-semibold text-texto mb-2">Sinopse</h3>
+                    <p class="text-texto/80 leading-relaxed text-sm">
+                      {{ dadosAPI.descricao }}
+                    </p>
+                  </div>
+
+                  <!-- Status Dropdown -->
                 </div>
               </div>
-              <span class="rating-text">
-                {{ livro.AvaliacaoMedia ? livro.AvaliacaoMedia.toFixed(1) : '0.0' }}
-                ({{ livro.TotalAvaliacoes || 0 }} {{ livro.TotalAvaliacoes === 1 ? 'avaliação' : 'avaliações' }})
-              </span>
             </div>
+          </div>
 
-            <!-- Status Dropdown -->
-            <div v-if="isAuthenticated" class="livro-status">
-              <label for="status-select" class="status-label">Meu Status:</label>
-              <select 
-                id="status-select"
-                v-model="statusAtual"
-                @change="alterarStatus"
-                class="status-select"
-              >
-                <option value="">Selecione um status</option>
-                <option 
-                  v-for="opcao in OPCOES_STATUS" 
-                  :key="opcao.valor"
-                  :value="opcao.valor"
-                >
-                  {{ opcao.label }}
-                </option>
-              </select>
+          <!-- Notas avaliação e tal -->
+  <div class="bg-incipit-card rounded-[30px] shadow-xl p-6 sticky top-4">
+            <h3 class="text-2xl font-bold text-texto text-center mb-4 font-display">Nota média</h3>
+            <div class="text-6xl font-bold text-texto text-center mb-2 font-display">
+              {{ livro.AvaliacaoMedia ? livro.AvaliacaoMedia.toFixed(1) : '0.0' }}
             </div>
+            <p class="text-center text-texto/60 text-sm mb-6">
+              {{ livro.TotalAvaliacoes || 0 }} {{ livro.TotalAvaliacoes === 1 ? 'avaliação' : 'avaliações' }}
+            </p>
+            <div class="mb-6">
+              <div 
+                v-for="n in 5" 
+                :key="n"
+                class="flex items-center gap-2 mb-2"
+              >
+                <span class="text-sm text-texto/70 w-8">{{ 6-n }}★</span>
+                <div class="flex-1 h-6 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    class="h-full bg-incipit-roxo transition-all"
+                    :style="{ width: calcularDistribuicao(6-n) + '%' }"
+                  ></div>
+                </div>
+              </div>
+              </div>
 
             <!-- Tags -->
-            <div class="livro-tags">
-              <h3 class="tags-title">Gêneros/Tags</h3>
-              <div class="tags-list">
-                <span 
-                  v-for="tag in tagsLivro" 
-                  :key="tag.id"
-                  class="tag"
-                >
-                  {{ tag.nome }}
-                  <button 
-                    v-if="isAuthenticated"
-                    @click="removerTag(tag.id)"
-                    class="tag-remove"
-                    title="Remover tag"
-                  >
-                    <div class="i-mdi:close"></div>
-                  </button>
-                </span>
-                
-                <!-- Add Tag -->
-                <div v-if="isAuthenticated" class="tag-add-container">
-                  <input
-                    v-if="mostrarInputTag"
-                    v-model="novaTag"
-                    @keyup.enter="adicionarTag"
-                    @blur="cancelarNovaTag"
-                    placeholder="Nome da tag"
-                    class="tag-input"
-                    ref="tagInput"
-                  >
-                  <button 
-                    v-else
-                    @click="mostrarInputNovaTag"
-                    class="tag-add-button"
-                    title="Adicionar tag"
-                  >
-                    <div class="i-mdi:plus"></div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                  <div class="livro-tags">
+                    <h3 class="tags-title">Gêneros/Tags</h3>
+                    <div class="tags-list text-texto font-bold">
+                                              <div class="i-mdi:tag text-texto"></div>
+                      <span v-for="tag in tagsLivro" :key="tag.id" class="tag bg-incipit-base shadow-lg font-bo">
+                        {{ tag.nome }}
+                        <button
+                          v-if="isAuthenticated"
+                          @click="removerTag(tag.id)"
+                          class="tag-remove"
+                          title="Remover tag"
+                        >
+                          <div class="i-mdi:close text-texto"></div>
+                        </button>
+                      </span>
 
-        <!-- Description -->
-        <div v-if="dadosAPI.descricao" class="livro-descricao">
-          <h2 class="section-title">Sinopse</h2>
-          <p class="descricao-text">{{ dadosAPI.descricao }}</p>
+                      <!-- Add Tag -->
+                      <div v-if="isAuthenticated" class="tag-add-container">
+                        <input
+                          v-if="mostrarInputTag"
+                          v-model="novaTag"
+                          @keyup.enter="adicionarTag"
+                          @blur="cancelarNovaTag"
+                          placeholder="Nome da tag"
+                          class="tag-input"
+                          ref="tagInput"
+                        />
+                        <button
+                          v-else
+                          @click="mostrarInputNovaTag"
+                          class="tag-add-button"
+                          title="Adicionar tag"
+                        >
+                          <div class="i-mdi:plus"></div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+          </div>
+
         </div>
 
         <!-- Reviews Section -->
@@ -153,9 +190,9 @@
           <!-- Add Review (if authenticated) -->
           <div v-if="isAuthenticated" class="add-review">
             <h3 class="subsection-title">
-              {{ minhaNotaExistente ? 'Editar minha avaliação' : 'Deixe sua avaliação' }}
+              {{ minhaNotaExistente ? "Editar minha avaliação" : "Deixe sua avaliação" }}
             </h3>
-            
+
             <!-- Star Rating -->
             <div class="rating-input">
               <label>Nota:</label>
@@ -164,7 +201,10 @@
                   v-for="n in 5"
                   :key="n"
                   @click="avaliacaoNova = n"
-                  :class="['star-button', n <= avaliacaoNova ? 'star-filled' : 'star-empty']"
+                  :class="[
+                    'star-button',
+                    n <= avaliacaoNova ? 'star-filled' : 'star-empty',
+                  ]"
                   type="button"
                 >
                   <div class="i-mdi:star"></div>
@@ -181,41 +221,43 @@
             ></textarea>
 
             <!-- Submit Button -->
-            <button 
+            <button
               @click="enviarAvaliacao"
               :disabled="avaliacaoNova === 0"
               class="btn-primary"
             >
-              {{ minhaNotaExistente ? 'Atualizar Avaliação' : 'Publicar Avaliação' }}
+              {{ minhaNotaExistente ? "Atualizar Avaliação" : "Publicar Avaliação" }}
             </button>
           </div>
 
           <!-- Reviews List -->
           <div class="reviews-list">
-            <div 
-              v-for="nota in notas" 
-              :key="nota.id"
-              class="review-item"
-            >              <div class="review-header">
+            <div v-for="nota in notas" :key="nota.id" class="review-item">
+              <div class="review-header">
                 <div class="review-author">
                   <div class="i-mdi:account-circle author-icon"></div>
                   <span class="author-name">
-                    {{ nota.expand?.autor?.name || nota.expand?.autor?.email || 'Usuário' }}
+                    {{
+                      nota.expand?.autor?.name || nota.expand?.autor?.email || "Usuário"
+                    }}
                   </span>
                 </div>
                 <div class="review-rating">
-                  <div 
-                    v-for="n in 5" 
+                  <div
+                    v-for="n in 5"
                     :key="n"
-                    :class="['star-small', n <= nota.avaliacao ? 'star-filled' : 'star-empty']"
+                    :class="[
+                      'star-small',
+                      n <= nota.avaliacao ? 'star-filled' : 'star-empty',
+                    ]"
                   >
                     <div class="i-mdi:star"></div>
                   </div>
                 </div>
               </div>
-              
+
               <p v-if="nota.resenha" class="review-text">{{ nota.resenha }}</p>
-              
+
               <div class="review-footer">
                 <span class="review-date">{{ formatarData(nota.created) }}</span>
               </div>
@@ -242,7 +284,7 @@
               class="comment-textarea"
               rows="3"
             ></textarea>
-            <button 
+            <button
               @click="enviarComentario"
               :disabled="!novoComentario.trim()"
               class="btn-secondary"
@@ -253,24 +295,29 @@
 
           <!-- Comments List -->
           <div class="comments-list">
-            <div 
-              v-for="comentario in comentarios" 
+            <div
+              v-for="comentario in comentarios"
               :key="comentario.id"
               class="comment-item"
-            >              <div class="comment-header">
+            >
+              <div class="comment-header">
                 <div class="comment-author">
                   <div class="i-mdi:account-circle author-icon"></div>
                   <span class="author-name">
-                    {{ comentario.expand?.autor?.name || comentario.expand?.autor?.email || 'Usuário' }}
+                    {{
+                      comentario.expand?.autor?.name ||
+                      comentario.expand?.autor?.email ||
+                      "Usuário"
+                    }}
                   </span>
                 </div>
                 <span class="comment-date">{{ formatarData(comentario.created) }}</span>
               </div>
-              
+
               <p class="comment-text">{{ comentario.conteudo }}</p>
-              
+
               <!-- Reply Button -->
-              <button 
+              <button
                 v-if="isAuthenticated"
                 @click="iniciarResposta(comentario.id)"
                 class="comment-reply-button"
@@ -288,33 +335,38 @@
                   rows="2"
                 ></textarea>
                 <div class="reply-actions">
-                  <button 
+                  <button
                     @click="enviarResposta(comentario.id)"
                     :disabled="!respostaTexto.trim()"
                     class="btn-small btn-primary"
                   >
                     Enviar
                   </button>
-                  <button 
-                    @click="cancelarResposta"
-                    class="btn-small btn-secondary"
-                  >
+                  <button @click="cancelarResposta" class="btn-small btn-secondary">
                     Cancelar
                   </button>
                 </div>
               </div>
 
               <!-- Replies -->
-              <div v-if="comentario.respostas && comentario.respostas.length > 0" class="replies-list">
-                <div 
-                  v-for="resposta in comentario.respostas" 
+              <div
+                v-if="comentario.respostas && comentario.respostas.length > 0"
+                class="replies-list"
+              >
+                <div
+                  v-for="resposta in comentario.respostas"
                   :key="resposta.id"
                   class="reply-item"
-                >                  <div class="comment-header">
+                >
+                  <div class="comment-header">
                     <div class="comment-author">
                       <div class="i-mdi:account-circle author-icon"></div>
                       <span class="author-name">
-                        {{ resposta.expand?.autor?.name || resposta.expand?.autor?.email || 'Usuário' }}
+                        {{
+                          resposta.expand?.autor?.name ||
+                          resposta.expand?.autor?.email ||
+                          "Usuário"
+                        }}
                       </span>
                     </div>
                     <span class="comment-date">{{ formatarData(resposta.created) }}</span>
@@ -335,46 +387,56 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue';
-import Header from '~/components/Header.vue';
-import { useLivros } from '~/composables/useLivros';
-import { useNotas } from '~/composables/useNotas';
-import { useComentarios } from '~/composables/useComentarios';
-import { useStatus } from '~/composables/useStatus';
-import { useTags } from '~/composables/useTags';
+import { ref, onMounted, computed, nextTick } from "vue";
+import Header from "~/components/Header.vue";
+import { useLivros } from "~/composables/useLivros";
+import { useNotas } from "~/composables/useNotas";
+import { useComentarios } from "~/composables/useComentarios";
+import { useStatus } from "~/composables/useStatus";
+import { useTags } from "~/composables/useTags";
 
 const route = useRoute();
 const { $pb } = useNuxtApp();
 
 // State
 const loading = ref(true);
-const error = ref('');
+const error = ref("");
 const livro = ref(null);
 const dadosAPI = ref({});
 const notas = ref([]);
 const comentarios = ref([]);
 const tagsLivro = ref([]);
-const statusAtual = ref('');
+const statusAtual = ref("");
 
 // Reviews
 const avaliacaoNova = ref(0);
-const resenhaTexto = ref('');
+const resenhaTexto = ref("");
 const minhaNotaExistente = ref(null);
 
 // Comments
-const novoComentario = ref('');
+const novoComentario = ref("");
 const comentarioRespondendo = ref(null);
-const respostaTexto = ref('');
+const respostaTexto = ref("");
 
 // Tags
 const mostrarInputTag = ref(false);
-const novaTag = ref('');
+const novaTag = ref("");
 const tagInput = ref(null);
 
 // Composables
 const { buscarLivroPorISBN, buscarDadosLivroAPI } = useLivros();
-const { buscarNotasLivro, criarNota, atualizarNota, buscarNotaUsuario, atualizarMediaAvaliacoes } = useNotas();
-const { buscarComentariosComRespostas, criarComentario, responderComentario } = useComentarios();
+const {
+  buscarNotasLivro,
+  criarNota,
+  atualizarNota,
+  buscarNotaUsuario,
+  atualizarMediaAvaliacoes,
+} = useNotas();
+const {
+  buscarComentariosComRespostas,
+  criarComentario,
+  responderComentario,
+} = useComentarios();
 const { OPCOES_STATUS, buscarStatus, definirStatus } = useStatus();
 const { buscarTagsLivro, adicionarOuCriarTag, removerTagDoLivro } = useTags();
 
@@ -388,14 +450,14 @@ onMounted(async () => {
 
 async function carregarDadosLivro() {
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     // Busca livro no banco
     const resultadoLivro = await buscarLivroPorISBN(isbn.value);
-    
+
     if (!resultadoLivro.sucesso) {
-      error.value = 'Livro não encontrado.';
+      error.value = "Livro não encontrado.";
       return;
     }
 
@@ -406,28 +468,23 @@ async function carregarDadosLivro() {
     if (resultadoAPI.sucesso) {
       dadosAPI.value = {
         ...resultadoAPI.dados,
-        editora: resultadoAPI.dados.editora || '',
-        dataPublicacao: resultadoAPI.dados.dataPublicacao || '',
-        paginas: resultadoAPI.dados.paginas || ''
+        editora: resultadoAPI.dados.editora || "",
+        dataPublicacao: resultadoAPI.dados.dataPublicacao || "",
+        paginas: resultadoAPI.dados.paginas || "",
       };
     }
 
     // Busca notas, comentários, tags
-    await Promise.all([
-      carregarNotas(),
-      carregarComentarios(),
-      carregarTags()
-    ]);
+    await Promise.all([carregarNotas(), carregarComentarios(), carregarTags()]);
 
     // Se autenticado, busca status e nota do usuário
     if (isAuthenticated.value) {
       await carregarStatusUsuario();
       await carregarMinhaAvaliacao();
     }
-
   } catch (err) {
-    console.error('Erro ao carregar livro:', err);
-    error.value = 'Erro ao carregar informações do livro.';
+    console.error("Erro ao carregar livro:", err);
+    error.value = "Erro ao carregar informações do livro.";
   } finally {
     loading.value = false;
   }
@@ -466,14 +523,14 @@ async function carregarMinhaAvaliacao() {
   if (resultado.sucesso) {
     minhaNotaExistente.value = resultado.dados;
     avaliacaoNova.value = resultado.dados.avaliacao;
-    resenhaTexto.value = resultado.dados.resenha || '';
+    resenhaTexto.value = resultado.dados.resenha || "";
   }
 }
 
 // Status
 async function alterarStatus() {
   if (!statusAtual.value) return;
-  
+
   const resultado = await definirStatus(
     livro.value.id,
     $pb.authStore.model.id,
@@ -481,9 +538,9 @@ async function alterarStatus() {
   );
 
   if (resultado.sucesso) {
-    console.log('Status atualizado com sucesso!');
+    console.log("Status atualizado com sucesso!");
   } else {
-    alert('Erro ao atualizar status: ' + resultado.erro);
+    alert("Erro ao atualizar status: " + resultado.erro);
   }
 }
 
@@ -495,7 +552,7 @@ async function enviarAvaliacao() {
     livro: livro.value.id,
     autor: $pb.authStore.model.id,
     avaliacao: avaliacaoNova.value,
-    resenha: resenhaTexto.value.trim()
+    resenha: resenhaTexto.value.trim(),
   };
 
   let resultado;
@@ -508,13 +565,13 @@ async function enviarAvaliacao() {
   if (resultado.sucesso) {
     // Atualiza média do livro
     await atualizarMediaAvaliacoes(livro.value.id);
-    
+
     // Recarrega dados
     await carregarDadosLivro();
-    
-    alert(minhaNotaExistente.value ? 'Avaliação atualizada!' : 'Avaliação publicada!');
+
+    alert(minhaNotaExistente.value ? "Avaliação atualizada!" : "Avaliação publicada!");
   } else {
-    alert('Erro ao enviar avaliação: ' + resultado.erro);
+    alert("Erro ao enviar avaliação: " + resultado.erro);
   }
 }
 
@@ -525,27 +582,27 @@ async function enviarComentario() {
   const dados = {
     conteudo: novoComentario.value.trim(),
     autor: $pb.authStore.model.id,
-    livro: livro.value.id
+    livro: livro.value.id,
   };
 
   const resultado = await criarComentario(dados);
-  
+
   if (resultado.sucesso) {
-    novoComentario.value = '';
+    novoComentario.value = "";
     await carregarComentarios();
   } else {
-    alert('Erro ao enviar comentário: ' + resultado.erro);
+    alert("Erro ao enviar comentário: " + resultado.erro);
   }
 }
 
 function iniciarResposta(comentarioId) {
   comentarioRespondendo.value = comentarioId;
-  respostaTexto.value = '';
+  respostaTexto.value = "";
 }
 
 function cancelarResposta() {
   comentarioRespondendo.value = null;
-  respostaTexto.value = '';
+  respostaTexto.value = "";
 }
 
 async function enviarResposta(comentarioPaiId) {
@@ -562,7 +619,7 @@ async function enviarResposta(comentarioPaiId) {
     cancelarResposta();
     await carregarComentarios();
   } else {
-    alert('Erro ao enviar resposta: ' + resultado.erro);
+    alert("Erro ao enviar resposta: " + resultado.erro);
   }
 }
 
@@ -577,7 +634,7 @@ function mostrarInputNovaTag() {
 function cancelarNovaTag() {
   setTimeout(() => {
     mostrarInputTag.value = false;
-    novaTag.value = '';
+    novaTag.value = "";
   }, 200);
 }
 
@@ -585,37 +642,45 @@ async function adicionarTag() {
   if (!novaTag.value.trim()) return;
 
   const resultado = await adicionarOuCriarTag(livro.value.id, novaTag.value.trim());
-  
+
   if (resultado.sucesso) {
-    novaTag.value = '';
+    novaTag.value = "";
     mostrarInputTag.value = false;
     await carregarTags();
   } else {
-    alert('Erro ao adicionar tag: ' + resultado.erro);
+    alert("Erro ao adicionar tag: " + resultado.erro);
   }
 }
 
 async function removerTag(tagId) {
-  if (!confirm('Remover esta tag do livro?')) return;
+  if (!confirm("Remover esta tag do livro?")) return;
 
   const resultado = await removerTagDoLivro(livro.value.id, tagId);
-  
+
   if (resultado.sucesso) {
     await carregarTags();
   } else {
-    alert('Erro ao remover tag: ' + resultado.erro);
+    alert("Erro ao remover tag: " + resultado.erro);
   }
 }
 
 // Utilities
 function formatarData(data) {
   const date = new Date(data);
-  return date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
+  
 }
+
+function calcularDistribuicao(estrelas) {
+  if (notas.value.length === 0) return 0;
+  const count = notas.value.filter(n => Math.round(n.avaliacao) === estrelas).length;
+  return (count / notas.value.length) * 100;
+}
+
 </script>
 
 <style src="~/styles/pages/livro.css"></style>

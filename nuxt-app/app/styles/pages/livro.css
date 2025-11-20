@@ -221,9 +221,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: rgba(166, 141, 173, 0.2);
-  color: #A68DAD;
+  padding: 0.2rem 1rem;
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 500;

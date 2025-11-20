@@ -271,7 +271,7 @@ async function adicionarLivroALista(listaId) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-incipit-fundo overflow-hidden relative">
+  <div class="min-h-screen bg-incipit-fundo overflow-hidden relative font-sono">
     <!-- Header Component -->
     <Header
       :show-search="true"
@@ -301,29 +301,34 @@ async function adicionarLivroALista(listaId) {
           <h2 class="text-3xl text-texto mb-4">
             <span class="font-bold">{{ results.length }}</span>
             <span v-if="totalItems > 0" class="text-texto/70"> de {{ totalItems }}</span>
-            <span class="font-normal"> resultados para</span>
+            <span class="font-display"> resultados para </span>
+              <span class="font-display text-roxo">"{{ searchTerm }}"</span>
           </h2>
           
           <!-- Filtros superiores -->
           <div class="flex items-center justify-center gap-3 mb-3">
             <span class="text-texto text-sm">Pesquisar por:</span>
-            <div class="inline-flex bg-incipit-card rounded-lg p-1 gap-1">
-              <button 
+              <button class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
                 @click="searchType = 'livros'"
-                :class="searchType === 'livros' ? 'bg-branco text-texto shadow-sm' : 'text-texto/60 hover:text-texto'"
-                class="px-4 py-1.5 rounded-md text-sm transition-all font-medium"
+
               >
                 Livros
               </button>
+
+                            <button class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
+                @click="searchType = 'comunidades'"
+
+              >
+                Comunidades
+              </button>
             </div>
-          </div>
 
           <!-- Filtros de ordenação -->
-          <div class="flex items-center justify-center gap-2 text-sm">
+          <div class="flex items-center justify-end gap-2 text-sm">
             <!-- Dropdown Data -->
             <div class="relative inline-block">
               <button 
-                class="flex items-center gap-1 px-4 py-1.5 rounded-lg border border-texto/20 bg-branco text-texto hover:border-roxo/50 transition"
+                class="flex items-center gap-1 px-1.5 py-0.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold"
               >
                 <span>Data</span>
                 <div class="i-mdi:chevron-down text-sm"></div>
@@ -333,7 +338,7 @@ async function adicionarLivroALista(listaId) {
             <!-- Dropdown Nota -->
             <div class="relative inline-block">
               <button 
-                class="flex items-center gap-1 px-4 py-1.5 rounded-lg border border-texto/20 bg-branco text-texto hover:border-roxo/50 transition"
+                class="flex items-center gap-1 px-1.5 py-0.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold"
               >
                 <span>Nota</span>
                 <div class="i-mdi:chevron-down text-sm"></div>
@@ -341,7 +346,7 @@ async function adicionarLivroALista(listaId) {
             </div>
 
             <!-- Botão Aplicar filtros -->
-            <button class="bg-roxo text-branco px-5 py-1.5 rounded-full hover:brightness-90 transition font-medium">
+            <button class="botao">
               Aplicar filtros
             </button>
           </div>
@@ -369,7 +374,7 @@ async function adicionarLivroALista(listaId) {
         <!-- Grid de resultados -->
         <div 
           v-if="!loading && results.length > 0" 
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-6"
         >          <div 
             v-for="item in results" 
             :key="item.id"
@@ -388,19 +393,19 @@ async function adicionarLivroALista(listaId) {
                 v-else
                 class="w-full h-full flex items-center justify-center bg-incipit-base"
               >
-                <div class="i-mdi:book text-6xl text-texto/30"></div>
+                <div class="i-mdi:book text-6xl text-texto"></div>
               </div>
             </div>            <!-- Info do livro -->
-            <div class="p-3">
-              <p class="text-xs text-texto/70 mb-1">
+            <div class="px-3 text-center">
+              <p class="text-xs text-roxo mb-1 font-bold">
                 <span v-if="item.volumeInfo.authors">
-                  Autor: {{ item.volumeInfo.authors[0] }}
+                  {{ item.volumeInfo.authors[0] }}
                   <span v-if="item.volumeInfo.authors.length > 1">...</span>
                 </span>
-                <span v-else>Editora</span>
+                <span v-else>Autor desconhecido</span>
               </p>
               <h3 
-                class="text-sm font-medium text-texto line-clamp-2" 
+                class="text-sm font-bold text-texto line-clamp-2" 
                 :title="item.volumeInfo.title"
               >
                 {{ item.volumeInfo.title }}

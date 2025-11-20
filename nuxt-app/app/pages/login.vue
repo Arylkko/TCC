@@ -26,7 +26,7 @@ async function login() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-incipit-fundo overflow-hidden relative">
+  <div class="min-h-screen bg-incipit-fundo overflow-hidden relative font-sono">
     <!-- Header Component -->
     <Header variant="auth" />
 
@@ -36,36 +36,35 @@ async function login() {
     </div>
 
     <!-- Main Content -->
-    <div class="relative z-10 flex items-center justify-center min-h-[calc(100vh-80px)] p-6">
+    <div class="relative z-10 flex items-center justify-center min-h-[calc(100vh-200px)]">
       <div class="auth-card">
-        <h2 class="title-lg">Login</h2>
+        <h2 class="title-lg font-display">Login</h2>
         
         <form @submit.prevent="login" class="space-y-4">
+          <div class="space-y-6">
           <!-- Email -->
           <div>
-            <label for="email" class="label-text">Email</label>
-            <input 
+            <input
               type="email" 
               id="email" 
               v-model="form.email" 
               placeholder="Email"
-              class="input-field"
+              class="input-field box-border"
               required 
             />
           </div>
-
           <!-- Senha -->
           <div>
-            <label for="password" class="label-text">Senha</label>
             <input 
               type="password" 
               id="password" 
               v-model="form.password" 
               placeholder="Senha"
-              class="input-field"
+              class="input-field box-border"
               required 
             />
           </div>
+</div>
 
           <!-- Esqueceu senha e Manter conectado -->
           <div class="flex items-center justify-between text-sm">

@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "@unocss/preset-web-fonts": "^66.5.7"
+  }
+}

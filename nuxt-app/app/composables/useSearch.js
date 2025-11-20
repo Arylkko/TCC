@@ -19,7 +19,7 @@ export const useSearch = () => {
 
     try {
       const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchTerm)}&startIndex=${startIndex}&maxResults=${maxResults}&key=${apiKey}`;
-      
+    
       const response = await fetch(url);
       const data = await response.json();
 

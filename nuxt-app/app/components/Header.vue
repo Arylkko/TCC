@@ -8,10 +8,11 @@
   >
     <!-- Logo -->
     <NuxtLink to="/" class="logo-link">
-      <span class="logo-text">Incipit</span>
+      <span class="logo-text font-sono">Incipit</span>
     </NuxtLink>
 
     <!-- Search Form (apenas se showSearch for true) -->
+     <div class="flex">
     <form 
       v-if="showSearch" 
       @submit.prevent="handleSearch" 
@@ -21,17 +22,18 @@
         'search-expanded': isExpanded || localSearchTerm
       }"
     >
-      <div class="search-wrapper-livro">
+      <div class="flex">
         <input
           v-model="localSearchTerm"
           type="text"
           placeholder="Pesquisar livros..."
-          class="search-input-livro"
+          class="search-input-livro font-sono !bg-incipit-card box-border"
           :class="{ 'input-expanded': isExpanded || localSearchTerm }"
           @focus="handleFocus"
           @blur="handleBlur"
         />
-        <button 
+      </div>
+                    <button 
           type="submit" 
           class="search-button-livro"
           :disabled="loading"
@@ -41,7 +43,8 @@
             :class="loading ? 'animate-pulse' : ''"
           ></div>
         </button>
-      </div>
+      
+      
     </form>    <!-- User Menu (apenas se showUserMenu for true E não for página de auth) -->
     <div v-if="showUserMenu && variant !== 'auth'" class="user-menu-livro">
       <div class="i-mdi:account-circle user-icon" title="Perfil"></div>
@@ -51,6 +54,7 @@
     <!-- Menu simples para páginas de autenticação -->
     <div v-if="variant === 'auth'" class="auth-menu-livro">
       <div class="i-mdi:menu menu-icon" title="Menu"></div>
+    </div>
     </div>
   </header>
 </template>
