@@ -242,10 +242,10 @@
               </button>
             </div>
 
-            <!-- Card de Resenha Individual -->
+            <!-- Card de resenha -->
             <div v-for="nota in notas" :key="nota.id" @click='ExpandirResenha(nota)' class="review-item grid gap-5">
               <div class="bg-incipit-card rounded-[30px] shadow-lg p-6 mb-4">
-                <!-- Título da Resenha e Estrelas -->
+                <!-- Título e estrelas -->
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
                     <h3 class="text-lg font-semibold text-texto m-0">Título</h3>
@@ -263,18 +263,18 @@
                     </div>
                   </div>
 
-                  <!-- Texto da Resenha -->
+                  <!-- Texto -->
                   <div v-if="nota.resenha" class="review-text break-all line-clamp-2">{{ nota.resenha }}</div>
                 </div>
 
-                <!-- Footer: Avatar, Usuário e Botão Spoiler -->
+                <!-- Footer -->
                 <div class="flex items-end justify-between mt-10">
-                  <!-- Lado Esquerdo: Avatar + Info -->
+                  <!-- Avatar + info -->
                   <div class="flex items-end gap-3">
                     <!-- Avatar -->
                     <div class="w-10 h-10 rounded-full bg-roxo flex-shrink-0"></div>
 
-                    <!-- Info do Usuário -->
+                    <!-- Info -->
                     <div class="flex flex-col">
                       <span class="text-roxo">
                         {{ nota.expand?.autor?.name || "Usuário" }}
@@ -284,7 +284,7 @@
                       }}</span>
                     </div>
 
-                    <!-- Lado Direito: Botão Spoilers -->
+                    <!-- botão spoiler -->
                     <div class="flex items-center gap-1 ml-2">
                       <div class="i-mdi:heart text-roxo text-lg"></div>
                       <span class="text-texto/60 text-xs">likes</span>
@@ -304,9 +304,26 @@
             </div>
               </div>
 
+
+
+
+
+
+    <div class="flex items-start gap-4 max-w-2xl w-full">
+<div class="bg-incipit-card rounded-[30px] shadow-lg p-6 mb-4">
+teste</div>
+<div>teste 2</div>
+    </div>
+
+
+
+
+
             <!-- Comments Section -->
             <div class="comments-section">
-              <h2 class="section-title">
+             <h2
+                class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
+              >
                 Comentários
                 <span class="count">({{ comentarios.length }})</span>
               </h2>
@@ -327,6 +344,7 @@
                   Publicar Comentário
                 </button>
               </div>
+
 
               <!-- Comments List -->
               <div class="comments-list">
