@@ -21,7 +21,7 @@
 .livro-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   position: relative;
   z-index: 1;
 }
@@ -230,6 +230,7 @@
 
 .tag:hover {
   background-color: rgba(166, 141, 173, 0.3);
+  transform: scale(1.05);
 }
 
 .tag-remove {
@@ -271,7 +272,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
+  padding: 0.1rem;  
   background-color: rgba(166, 141, 173, 0.2);
   border: none;
   border-radius: 50%;
@@ -322,9 +323,7 @@
 .reviews-section,
 .comments-section {
   padding: 2rem;
-  background-color: #DFD3C3;
   border-radius: 30px;
-  box-shadow: 0 4px 20px rgba(78, 57, 57, 0.1);
 }
 
 .subsection-title {
@@ -406,10 +405,9 @@
 
 .review-item,
 .comment-item {
-  padding: 1.5rem;
+  padding: 1rem;
   background-color: #ede5d8;
   border-radius: 20px;
-  border: 1px solid rgba(78, 57, 57, 0.1);
 }
 
 .review-header,
@@ -429,18 +427,9 @@
 
 .author-icon {
   font-size: 2rem;
-  color: #A68DAD;
+  color: #ffffff;
 }
 
-.author-name {
-  font-weight: 600;
-  color: #4E3939;
-}
-
-.review-rating {
-  display: flex;
-  gap: 0.125rem;
-}
 
 .star-small {
   font-size: 1rem;
@@ -449,10 +438,7 @@
 .review-text,
 .comment-text {
   font-size: 1rem;
-  line-height: 1.6;
   color: #4E3939;
-  opacity: 0.9;
-  margin-bottom: 0.75rem;
 }
 
 .review-footer,

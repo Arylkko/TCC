@@ -66,6 +66,19 @@ export const useNotas = () => {
     }
   };
 
+  // por id 
+  const buscarNotaPorId = async (notaId) => {
+    try {
+      const nota = await $pb.collection('notas').getOne(notaId, {
+        expand: 'autor,livro',
+      });
+      return { sucesso: true, dados: nota };
+    } catch (error) {
+      console.error('Erro ao buscar nota por ID:', error);
+      return { sucesso: false, erro: error.message || 'Erro ao buscar nota' };
+    }
+  };
+
   // Calcula e atualiza a média de avaliações do livro
   const atualizarMediaAvaliacoes = async (livroId) => {
     try {
@@ -97,6 +110,7 @@ export const useNotas = () => {
     atualizarNota,
     deletarNota,
     buscarNotaUsuario,
-    atualizarMediaAvaliacoes
+    atualizarMediaAvaliacoes,
+    buscarNotaPorId,
   };
 };

@@ -1,5 +1,5 @@
 <template>
-  <div class="livro-page font-sono">
+  <div class="livro-page font-sono text-texto">
     <Header :show-search="true" />
 
     <main class="livro-container">
@@ -18,7 +18,10 @@
         </button>
       </div>
 
-      <div v-else-if="livro" class="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+      <div
+        v-else-if="livro"
+        class="grid gap-10 relative z-10 container mx-auto py-8 max-w-7xl"
+      >
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Coluna Esquerda: Info do Livro -->
           <div class="lg:col-span-2">
@@ -112,274 +115,312 @@
           </div>
 
           <!-- Notas avaliação e tal -->
-  <div class="bg-incipit-card rounded-[30px] shadow-xl p-6 sticky top-4">
-            <h3 class="text-2xl font-bold text-texto text-center mb-4 font-display">Nota média</h3>
+          <div class="bg-incipit-card rounded-[30px] shadow-xl p-6 h-fit">
+            <h3 class="text-2xl font-bold text-texto text-center mb-4 font-display">
+              Nota média
+            </h3>
             <div class="text-6xl font-bold text-texto text-center mb-2 font-display">
-              {{ livro.AvaliacaoMedia ? livro.AvaliacaoMedia.toFixed(1) : '0.0' }}
+              {{ livro.AvaliacaoMedia ? livro.AvaliacaoMedia.toFixed(1) : "0.0" }}
             </div>
             <p class="text-center text-texto/60 text-sm mb-6">
-              {{ livro.TotalAvaliacoes || 0 }} {{ livro.TotalAvaliacoes === 1 ? 'avaliação' : 'avaliações' }}
+              {{ livro.TotalAvaliacoes || 0 }}
+              {{ livro.TotalAvaliacoes === 1 ? "avaliação" : "avaliações" }}
             </p>
             <div class="mb-6">
-              <div 
-                v-for="n in 5" 
-                :key="n"
-                class="flex items-center gap-2 mb-2"
-              >
-                <span class="text-sm text-texto/70 w-8">{{ 6-n }}★</span>
+              <div v-for="n in 5" :key="n" class="flex items-center gap-2 mb-2">
+                <span class="text-sm text-texto/70 w-8">{{ 6 - n }}★</span>
                 <div class="flex-1 h-6 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     class="h-full bg-incipit-roxo transition-all"
-                    :style="{ width: calcularDistribuicao(6-n) + '%' }"
+                    :style="{ width: calcularDistribuicao(6 - n) + '%' }"
                   ></div>
                 </div>
               </div>
-              </div>
+            </div>
 
             <!-- Tags -->
-                  <div class="livro-tags">
-                    <h3 class="tags-title">Gêneros/Tags</h3>
-                    <div class="tags-list text-texto font-bold">
-                                              <div class="i-mdi:tag text-texto"></div>
-                      <span v-for="tag in tagsLivro" :key="tag.id" class="tag bg-incipit-base shadow-lg font-bo">
-                        {{ tag.nome }}
-                        <button
-                          v-if="isAuthenticated"
-                          @click="removerTag(tag.id)"
-                          class="tag-remove"
-                          title="Remover tag"
-                        >
-                          <div class="i-mdi:close text-texto"></div>
-                        </button>
-                      </span>
+            <div class="livro-tags">
+              <h3 class="tags-title">Gêneros/Tags</h3>
+              <div class="tags-list text-texto font-bold">
+                <span
+                  v-for="tag in tagsLivro"
+                  :key="tag.id"
+                  class="tag bg-incipit-base shadow-lg font-bo"
+                >
+                  <div class="i-mdi:tag text-texto"></div>
+                  {{ tag.nome }}
+                  <button
+                    v-if="isAuthenticated"
+                    @click="removerTag(tag.id)"
+                    class="tag-remove"
+                    title="Remover tag"
+                  >
+                    <div class="i-mdi:close text-texto"></div>
+                  </button>
+                </span>
 
-                      <!-- Add Tag -->
-                      <div v-if="isAuthenticated" class="tag-add-container">
-                        <input
-                          v-if="mostrarInputTag"
-                          v-model="novaTag"
-                          @keyup.enter="adicionarTag"
-                          @blur="cancelarNovaTag"
-                          placeholder="Nome da tag"
-                          class="tag-input"
-                          ref="tagInput"
-                        />
-                        <button
-                          v-else
-                          @click="mostrarInputNovaTag"
-                          class="tag-add-button"
-                          title="Adicionar tag"
-                        >
-                          <div class="i-mdi:plus"></div>
-                        </button>
+                <!-- Add Tag -->
+                <div v-if="isAuthenticated" class="tag-add-container">
+                  <input
+                    v-if="mostrarInputTag"
+                    v-model="novaTag"
+                    @keyup.enter="adicionarTag"
+                    @blur="cancelarNovaTag"
+                    placeholder="Nome da tag"
+                    class="tag-input"
+                    ref="tagInput"
+                  />
+                  <button
+                    v-else
+                    @click="mostrarInputNovaTag"
+                    class="tag-add-button"
+                    title="Adicionar tag"
+                  >
+                    <div class="i-mdi:plus"></div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reviews Section -->
+
+        <div class="reviews-section grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <div class="w-full max-w-screen-lg mb-6 sm:mb-8">
+              <h2
+                class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
+              >
+                Resenhas
+                <span class="count">({{ notas.length }})</span>
+              </h2>
+            </div>
+
+            <!-- Add Review (if authenticated) -->
+            <div v-if="isAuthenticated" class="add-review">
+              <h3 class="subsection-title">
+                {{
+                  minhaNotaExistente ? "Editar minha avaliação" : "Deixe sua avaliação"
+                }}
+              </h3>
+
+              <!-- Star Rating -->
+              <div class="rating-input">
+                <label>Nota:</label>
+                <div class="rating-stars-input">
+                  <button
+                    v-for="n in 5"
+                    :key="n"
+                    @click="avaliacaoNova = n"
+                    :class="[
+                      'star-button',
+                      n <= avaliacaoNova ? 'star-filled' : 'star-empty',
+                    ]"
+                    type="button"
+                  >
+                    <div class="i-mdi:star"></div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Review Text -->
+              <textarea
+                v-model="resenhaTexto"
+                placeholder="Escreva sua resenha (opcional)..."
+                class="review-textarea"
+                rows="5"
+              ></textarea>
+
+              <!-- Submit Button -->
+              <button
+                @click="enviarAvaliacao"
+                :disabled="avaliacaoNova === 0"
+                class="btn-primary"
+              >
+                {{ minhaNotaExistente ? "Atualizar Avaliação" : "Publicar Avaliação" }}
+              </button>
+            </div>
+
+            <!-- Card de Resenha Individual -->
+            <div v-for="nota in notas" :key="nota.id" @click='ExpandirResenha(nota)' class="review-item grid gap-5">
+              <div class="bg-incipit-card rounded-[30px] shadow-lg p-6 mb-4">
+                <!-- Título da Resenha e Estrelas -->
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-lg font-semibold text-texto m-0">Título</h3>
+                    <div class="flex gap-1">
+                      <div
+                        v-for="n in 5"
+                        :key="n"
+                        :class="[
+                          'star-small',
+                          n <= nota.avaliacao ? 'star-filled' : 'star-empty',
+                        ]"
+                      >
+                        <div class="i-mdi:star"></div>
                       </div>
                     </div>
                   </div>
 
-          </div>
+                  <!-- Texto da Resenha -->
+                  <div v-if="nota.resenha" class="review-text break-all line-clamp-2">{{ nota.resenha }}</div>
+                </div>
 
-        </div>
+                <!-- Footer: Avatar, Usuário e Botão Spoiler -->
+                <div class="flex items-end justify-between mt-10">
+                  <!-- Lado Esquerdo: Avatar + Info -->
+                  <div class="flex items-end gap-3">
+                    <!-- Avatar -->
+                    <div class="w-10 h-10 rounded-full bg-roxo flex-shrink-0"></div>
 
-        <!-- Reviews Section -->
-        <div class="reviews-section">
-          <h2 class="section-title">
-            Avaliações e Resenhas
-            <span class="count">({{ notas.length }})</span>
-          </h2>
+                    <!-- Info do Usuário -->
+                    <div class="flex flex-col">
+                      <span class="text-roxo">
+                        {{ nota.expand?.autor?.name || "Usuário" }}
+                      </span>
+                      <span class="text-sm text-texto/60">{{
+                        formatarData(nota.created)
+                      }}</span>
+                    </div>
 
-          <!-- Add Review (if authenticated) -->
-          <div v-if="isAuthenticated" class="add-review">
-            <h3 class="subsection-title">
-              {{ minhaNotaExistente ? "Editar minha avaliação" : "Deixe sua avaliação" }}
-            </h3>
+                    <!-- Lado Direito: Botão Spoilers -->
+                    <div class="flex items-center gap-1 ml-2">
+                      <div class="i-mdi:heart text-roxo text-lg"></div>
+                      <span class="text-texto/60 text-xs">likes</span>
+                    </div>
+                  </div>
+                  <button
+                    class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono"
+                  >
+                    S/C spoilers
+                  </button>
+                </div>
+              </div>
 
-            <!-- Star Rating -->
-            <div class="rating-input">
-              <label>Nota:</label>
-              <div class="rating-stars-input">
+              <p v-if="notas.length === 0" class="empty-message">
+                Nenhuma avaliação ainda. Seja o primeiro a avaliar!
+              </p>
+            </div>
+              </div>
+
+            <!-- Comments Section -->
+            <div class="comments-section">
+              <h2 class="section-title">
+                Comentários
+                <span class="count">({{ comentarios.length }})</span>
+              </h2>
+
+              <!-- Add Comment (if authenticated) -->
+              <div v-if="isAuthenticated" class="add-comment">
+                <textarea
+                  v-model="novoComentario"
+                  placeholder="Escreva um comentário..."
+                  class="comment-textarea"
+                  rows="3"
+                ></textarea>
                 <button
-                  v-for="n in 5"
-                  :key="n"
-                  @click="avaliacaoNova = n"
-                  :class="[
-                    'star-button',
-                    n <= avaliacaoNova ? 'star-filled' : 'star-empty',
-                  ]"
-                  type="button"
+                  @click="enviarComentario"
+                  :disabled="!novoComentario.trim()"
+                  class="btn-secondary"
                 >
-                  <div class="i-mdi:star"></div>
+                  Publicar Comentário
                 </button>
               </div>
-            </div>
 
-            <!-- Review Text -->
-            <textarea
-              v-model="resenhaTexto"
-              placeholder="Escreva sua resenha (opcional)..."
-              class="review-textarea"
-              rows="5"
-            ></textarea>
-
-            <!-- Submit Button -->
-            <button
-              @click="enviarAvaliacao"
-              :disabled="avaliacaoNova === 0"
-              class="btn-primary"
-            >
-              {{ minhaNotaExistente ? "Atualizar Avaliação" : "Publicar Avaliação" }}
-            </button>
-          </div>
-
-          <!-- Reviews List -->
-          <div class="reviews-list">
-            <div v-for="nota in notas" :key="nota.id" class="review-item">
-              <div class="review-header">
-                <div class="review-author">
-                  <div class="i-mdi:account-circle author-icon"></div>
-                  <span class="author-name">
-                    {{
-                      nota.expand?.autor?.name || nota.expand?.autor?.email || "Usuário"
-                    }}
-                  </span>
-                </div>
-                <div class="review-rating">
-                  <div
-                    v-for="n in 5"
-                    :key="n"
-                    :class="[
-                      'star-small',
-                      n <= nota.avaliacao ? 'star-filled' : 'star-empty',
-                    ]"
-                  >
-                    <div class="i-mdi:star"></div>
-                  </div>
-                </div>
-              </div>
-
-              <p v-if="nota.resenha" class="review-text">{{ nota.resenha }}</p>
-
-              <div class="review-footer">
-                <span class="review-date">{{ formatarData(nota.created) }}</span>
-              </div>
-            </div>
-
-            <p v-if="notas.length === 0" class="empty-message">
-              Nenhuma avaliação ainda. Seja o primeiro a avaliar!
-            </p>
-          </div>
-        </div>
-
-        <!-- Comments Section -->
-        <div class="comments-section">
-          <h2 class="section-title">
-            Comentários
-            <span class="count">({{ comentarios.length }})</span>
-          </h2>
-
-          <!-- Add Comment (if authenticated) -->
-          <div v-if="isAuthenticated" class="add-comment">
-            <textarea
-              v-model="novoComentario"
-              placeholder="Escreva um comentário..."
-              class="comment-textarea"
-              rows="3"
-            ></textarea>
-            <button
-              @click="enviarComentario"
-              :disabled="!novoComentario.trim()"
-              class="btn-secondary"
-            >
-              Publicar Comentário
-            </button>
-          </div>
-
-          <!-- Comments List -->
-          <div class="comments-list">
-            <div
-              v-for="comentario in comentarios"
-              :key="comentario.id"
-              class="comment-item"
-            >
-              <div class="comment-header">
-                <div class="comment-author">
-                  <div class="i-mdi:account-circle author-icon"></div>
-                  <span class="author-name">
-                    {{
-                      comentario.expand?.autor?.name ||
-                      comentario.expand?.autor?.email ||
-                      "Usuário"
-                    }}
-                  </span>
-                </div>
-                <span class="comment-date">{{ formatarData(comentario.created) }}</span>
-              </div>
-
-              <p class="comment-text">{{ comentario.conteudo }}</p>
-
-              <!-- Reply Button -->
-              <button
-                v-if="isAuthenticated"
-                @click="iniciarResposta(comentario.id)"
-                class="comment-reply-button"
-              >
-                <div class="i-mdi:reply"></div>
-                Responder
-              </button>
-
-              <!-- Reply Form -->
-              <div v-if="comentarioRespondendo === comentario.id" class="reply-form">
-                <textarea
-                  v-model="respostaTexto"
-                  placeholder="Escreva sua resposta..."
-                  class="reply-textarea"
-                  rows="2"
-                ></textarea>
-                <div class="reply-actions">
-                  <button
-                    @click="enviarResposta(comentario.id)"
-                    :disabled="!respostaTexto.trim()"
-                    class="btn-small btn-primary"
-                  >
-                    Enviar
-                  </button>
-                  <button @click="cancelarResposta" class="btn-small btn-secondary">
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-
-              <!-- Replies -->
-              <div
-                v-if="comentario.respostas && comentario.respostas.length > 0"
-                class="replies-list"
-              >
+              <!-- Comments List -->
+              <div class="comments-list">
                 <div
-                  v-for="resposta in comentario.respostas"
-                  :key="resposta.id"
-                  class="reply-item"
+                  v-for="comentario in comentarios"
+                  :key="comentario.id"
+                  class="comment-item"
                 >
                   <div class="comment-header">
                     <div class="comment-author">
                       <div class="i-mdi:account-circle author-icon"></div>
                       <span class="author-name">
                         {{
-                          resposta.expand?.autor?.name ||
-                          resposta.expand?.autor?.email ||
+                          comentario.expand?.autor?.name ||
+                          comentario.expand?.autor?.email ||
                           "Usuário"
                         }}
                       </span>
                     </div>
-                    <span class="comment-date">{{ formatarData(resposta.created) }}</span>
+                    <span class="comment-date">{{
+                      formatarData(comentario.created)
+                    }}</span>
                   </div>
-                  <p class="comment-text">{{ resposta.conteudo }}</p>
+
+                  <p class="comment-text">{{ comentario.conteudo }}</p>
+
+                  <!-- Reply Button -->
+                  <button
+                    v-if="isAuthenticated"
+                    @click="iniciarResposta(comentario.id)"
+                    class="comment-reply-button"
+                  >
+                    <div class="i-mdi:reply"></div>
+                    Responder
+                  </button>
+
+                  <!-- Reply Form -->
+                  <div v-if="comentarioRespondendo === comentario.id" class="reply-form">
+                    <textarea
+                      v-model="respostaTexto"
+                      placeholder="Escreva sua resposta..."
+                      class="reply-textarea"
+                      rows="2"
+                    ></textarea>
+                    <div class="reply-actions">
+                      <button
+                        @click="enviarResposta(comentario.id)"
+                        :disabled="!respostaTexto.trim()"
+                        class="btn-small btn-primary"
+                      >
+                        Enviar
+                      </button>
+                      <button @click="cancelarResposta" class="btn-small btn-secondary">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Replies -->
+                  <div
+                    v-if="comentario.respostas && comentario.respostas.length > 0"
+                    class="replies-list"
+                  >
+                    <div
+                      v-for="resposta in comentario.respostas"
+                      :key="resposta.id"
+                      class="reply-item"
+                    >
+                      <div class="comment-header">
+                        <div class="comment-author">
+                          <div class="i-mdi:account-circle author-icon"></div>
+                          <span class="author-name">
+                            {{
+                              resposta.expand?.autor?.name ||
+                              resposta.expand?.autor?.email ||
+                              "Usuário"
+                            }}
+                          </span>
+                        </div>
+                        <span class="comment-date">{{
+                          formatarData(resposta.created)
+                        }}</span>
+                      </div>
+                      <p class="comment-text">{{ resposta.conteudo }}</p>
+                    </div>
+                  </div>
                 </div>
+
+                <p v-if="comentarios.length === 0" class="empty-message">
+                  Nenhum comentário ainda. Inicie a conversa!
+                </p>
               </div>
             </div>
-
-            <p v-if="comentarios.length === 0" class="empty-message">
-              Nenhum comentário ainda. Inicie a conversa!
-            </p>
-          </div>
+        
         </div>
       </div>
     </main>
@@ -672,13 +713,26 @@ function formatarData(data) {
     month: "short",
     year: "numeric",
   });
-  
 }
 
 function calcularDistribuicao(estrelas) {
   if (notas.value.length === 0) return 0;
-  const count = notas.value.filter(n => Math.round(n.avaliacao) === estrelas).length;
+  const count = notas.value.filter((n) => Math.round(n.avaliacao) === estrelas).length;
   return (count / notas.value.length) * 100;
+}
+
+
+// teste
+
+function ExpandirResenha(nota){
+  console.log (nota.id);
+if (nota.id) {
+      // Redireciona para a página de detalhes
+      navigateTo(`/nota/${nota.id}`);
+    } else {
+      alert('Nota não encontrada.');
+    }
+
 }
 
 </script>
