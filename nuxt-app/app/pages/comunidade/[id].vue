@@ -40,8 +40,8 @@ const souMembro = computed(() => ehMembro(comunidade.value));
 
 // Avatar da Comunidade (Placeholder se não tiver)
 const avatarComunidade = computed(() => {
-    if (comunidade.value?.avatar) {
-        return $pb.files.getUrl(comunidade.value, comunidade.value.avatar)
+    if (comunidade.value?.imagem_comunidade) {
+        return $pb.files.getUrl(comunidade.value, comunidade.value.imagem_comunidade)
     }
     return 'https://via.placeholder.com/150/000000/FFFFFF/?text=' + (comunidade.value?.nome?.[0] || 'C');
 });
@@ -63,6 +63,32 @@ const diasRestantes = computed(() => {
   return diff > 0 ? diff : 0;
 });
 
+// Buscar capa do livro pela API do Google Books
+const capaLivroComunitario = ref('');
+async function buscarCapaLivro() {
+  const isbn = comunidade.value?.expand?.livro_semana?.ISBN;
+  if (!isbn) {
+    capaLivroComunitario.value = '';
+    return;
+  }
+  
+  try {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.items && data.items.length > 0) {
+      const livro = data.items[0].volumeInfo;
+      capaLivroComunitario.value = livro.imageLinks?.thumbnail?.replace('http:', 'https:') || '';
+    } else {
+      capaLivroComunitario.value = '';
+    }
+  } catch (error) {
+    console.error('Erro ao buscar capa do livro:', error);
+    capaLivroComunitario.value = '';
+  }
+}
+
 async function carregarComunidade() {
   loading.value = true;
   error.value = '';
@@ -71,6 +97,10 @@ async function carregarComunidade() {
   
   if (resultado.sucesso) {
     comunidade.value = resultado.dados;
+    // Buscar capa do livro se houver livro da semana
+    if (comunidade.value?.livro_semana) {
+      await buscarCapaLivro();
+    }
   } else {
     error.value = 'Erro ao carregar comunidade: ' + resultado.erro;
   }
@@ -333,19 +363,24 @@ onMounted(async () => {
                 class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
               >
                 Livro Comunitário
-              </h2>
-
-                <div class="bg-incipit-card rounded-[30px] p-2 shadow-md min-h-[150px] flex flex-col justify-center items-center text-center">
-                    <div v-if="comunidade.livro_semana" class="w-full">
+              </h2>                <div class="bg-incipit-card rounded-[30px] p-2 shadow-md min-h-[150px] flex flex-col justify-center items-center text-center">                    <div v-if="comunidade.livro_semana" class="w-full p-4">
                          <!-- capa -->
-                         <div v-if="comunidade.expand?.livro_semana?.capa" class="w-24 h-36 mx-auto mb-3 shadow-lg rounded-md overflow-hidden">
-                             <img :src="comunidade.expand.livro_semana.capa" class="w-full h-full object-cover" />
+                         <div class="w-32 h-48 mx-auto mb-4 shadow-xl rounded-lg overflow-hidden bg-gray-100">
+                             <img 
+                                v-if="capaLivroComunitario" 
+                                :src="capaLivroComunitario" 
+                                :alt="comunidade.expand?.livro_semana?.Nome"
+                                class="w-full h-full object-cover"
+                             />
+                             <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-roxo/20 to-roxo/40">
+                                <div class="i-mdi:book text-5xl text-roxo/50"></div>
+                             </div>
                          </div>
                          
-                         <h3 class="font-bold text-lg leading-tight mb-1">
+                         <h3 class="font-bold text-lg leading-tight mb-2 px-2">
                              {{ comunidade.expand?.livro_semana?.Nome || 'Livro Selecionado' }}
                          </h3>
-                         <p class="text-xs mb-3">
+                         <p class="text-xs mb-3 text-[#3d3131]/70">
                              Fim da leitura: {{ formatarData(comunidade.data_fim_leitura) }}
                          </p>
                          
@@ -356,7 +391,7 @@ onMounted(async () => {
                          <button 
                             v-if="souLider" 
                             @click="mostrarModalLivro = true"
-                            class="bg-roxo text-white px-4 py-1 rounded-full text-sm hover:opacity-90 transition block mx-auto mt-2"
+                            class="bg-roxo text-white px-4 py-2 rounded-full text-sm hover:opacity-90 transition block mx-auto mt-2"
                         >
                              Trocar Livro
                          </button>

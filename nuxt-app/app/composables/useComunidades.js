@@ -122,7 +122,9 @@ export const useComunidades = () => {
     return comunidade?.membros?.includes(userId) || false;
   };  // Definir livro da semana
   const definirLivroSemana = async (comunidadeId, livroId, diasDuracao = 7) => { 
-    try {// acho que ficaria legal algum tipo de search para pegar o livro, ai tipo quando o usuário clica ja coloca o ID
+    try {
+        // acho que ficaria legal algum tipo de search para pegar o livro, ai tipo quando o usuário clica
+        //  ja coloca o ID, deixa q eu faço isso depois de tu fazer o css
       const dataFim = new Date();
       dataFim.setDate(dataFim.getDate() + diasDuracao);
       
