@@ -1,6 +1,8 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useComunidades } from '~/composables/useComunidades';
+import { useRoute, useRouter } from 'vue-router'; // Garantindo imports
+import Header from '~/components/Header.vue'; // Assumindo que você tem esse componente
 
 const { $pb } = useNuxtApp();
 const route = useRoute();
@@ -36,25 +38,28 @@ const usuarioAtual = computed(() => $pb.authStore.model);
 const souLider = computed(() => ehLider(comunidade.value));
 const souMembro = computed(() => ehMembro(comunidade.value));
 
+// Avatar da Comunidade (Placeholder se não tiver)
+const avatarComunidade = computed(() => {
+    if (comunidade.value?.avatar) {
+        return $pb.files.getUrl(comunidade.value, comunidade.value.avatar)
+    }
+    return 'https://via.placeholder.com/150/000000/FFFFFF/?text=' + (comunidade.value?.nome?.[0] || 'C');
+});
+
+// Avatar do Usuário (Helper)
+function getAvatarUsuario(usuario) {
+    if (usuario?.avatar) {
+        return $pb.files.getUrl(usuario, usuario.avatar);
+    }
+    return null;
+}
+
 // Calcular dias restantes
 const diasRestantes = computed(() => {
-  if (!comunidade.value?.data_fim_leitura) {
-    console.log('Sem data_fim_leitura definida');
-    return null;
-  }
-  
-  console.log('data_fim_leitura do banco:', comunidade.value.data_fim_leitura);
+  if (!comunidade.value?.data_fim_leitura) return null;
   const fim = new Date(comunidade.value.data_fim_leitura);
   const hoje = new Date();
-  
-  console.log('Data fim:', fim);
-  console.log('Data hoje:', hoje);
-  console.log('Timestamp fim:', fim.getTime());
-  console.log('Timestamp hoje:', hoje.getTime());
-  
   const diff = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
-  console.log('Diferença em dias:', diff);
-  
   return diff > 0 ? diff : 0;
 });
 
@@ -81,29 +86,17 @@ async function carregarComentarios() {
 }
 
 async function toggleMembership() {
-  console.log('toggleMembership chamado');
-  console.log('souMembro:', souMembro.value);
-  console.log('comunidadeId:', comunidadeId);
-  console.log('usuarioAtual:', usuarioAtual.value?.id);
-  
   if (souMembro.value) {
-    console.log('Tentando sair da comunidade...');
+    if(!confirm("Tem certeza que deseja sair desta comunidade?")) return;
     const resultado = await sairDaComunidade(comunidadeId);
-    console.log('Resultado sair:', resultado);
-    
     if (resultado.sucesso) {
-      alert('Você saiu da comunidade');
       await carregarComunidade();
     } else {
       alert(resultado.erro);
     }
   } else {
-    console.log('Tentando entrar na comunidade...');
     const resultado = await entrarNaComunidade(comunidadeId);
-    console.log('Resultado entrar:', resultado);
-    
     if (resultado.sucesso) {
-      alert('Você entrou na comunidade!');
       await carregarComunidade();
     } else {
       alert(resultado.erro);
@@ -130,10 +123,7 @@ async function salvarLivroSemana() {
 }
 
 async function enviarComentario() {
-  if (!novoComentario.value.trim()) {
-    alert('Digite um comentário');
-    return;
-  }
+  if (!novoComentario.value.trim()) return;
 
   enviandoComentario.value = true;
   const resultado = await criarComentario(comunidadeId, novoComentario.value);
@@ -160,151 +150,307 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
-    <h1>Comunidade</h1>
+  <div class="min-h-screen bg-[#f3eddb] font-sono text-[#3d3131]">
+    <Header :show-search="true" />
 
-    <button @click="router.push('/comunidades')">Voltar para comunidades</button>
-
-    <div v-if="loading">Carregando...</div>
-    <div v-else-if="error">{{ error }}</div>
+    <!-- Loading / Error States -->
+    <div v-if="loading" class="flex justify-center items-center h-[80vh]">
+        <div class="i-mdi:loading animate-spin text-4xl text-roxo"></div>
+    </div>
     
-    <div v-else-if="comunidade">
-      <h2>{{ comunidade.nome }}</h2>
+    <div v-else-if="error" class="flex flex-col items-center justify-center h-[80vh] text-center p-4">
+        <div class="i-mdi:alert-circle text-6xl text-roxo mb-4"></div>
+        <h2 class="text-xl mb-4">{{ error }}</h2>
+        <button @click="router.push('/comunidades')" class="btn-primary">Voltar</button>
+    </div>
+
+    <!-- Main Content -->
+    <main v-else-if="comunidade" class="container mx-auto px-4 max-w-[1400px]">
       
-      <p><strong>Descrição:</strong> {{ comunidade.descricao || 'Sem descrição' }}</p>
-      
-      <p><strong>Líder:</strong> {{ comunidade.expand?.lider?.name || 'Desconhecido' }}</p>
-      
-      <p><strong>Membros:</strong> {{ comunidade.membros?.length || 0 }}</p>
 
-      <div v-if="comunidade.expand?.membros && comunidade.expand.membros.length > 0">
-        <h3>Lista de Membros:</h3>
-        <ul>
-          <li v-for="membro in comunidade.expand.membros" :key="membro.id">
-            {{ membro.name || membro.username }}
-            <span v-if="membro.id === comunidade.lider"> (Líder)</span>
-          </li>
-        </ul>
-      </div>
-
-      <hr>
-
-      <!-- LIVRO DA SEMANA -->
-      <div>
-        <h3>Livro da Semana</h3>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        <div v-if="comunidade.livro_semana">
-          <p><strong>Livro:</strong> {{ comunidade.expand?.livro_semana?.Nome || 'Carregando...' }}</p>
-          <p v-if="diasRestantes !== null">
-            <strong>Tempo restante:</strong> {{ diasRestantes }} dias
-          </p>
-          <p><strong>Data fim:</strong> {{ formatarData(comunidade.data_fim_leitura) }}</p>
-          
-          <button v-if="souLider" @click="mostrarModalLivro = true">
-            Trocar livro da semana
-          </button>
+        <!-- col 1  -->
+        <div class="lg:col-span-3 flex flex-col">
+            <!-- perfil -->
+             <h2
+                class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
+              >
+                Perfil
+              </h2>
+
+
+            <!-- perfil -->
+            <div class="bg-incipit-card rounded-[30px] p-6 shadow-md flex flex-col items-center text-center relative overflow-hidden">
+                <!-- foto -->
+                <div class="w-40 h-40 rounded-full border-4 border-roxo overflow-hidden bg-incipit-base">
+                    <img :src="avatarComunidade" class="w-full h-full object-cover" />
+                </div>
+
+                <!-- info -->
+                <h1 class="text-2xl font-display uppercase tracking-wide break-words w-full mb-0">{{ comunidade.nome }}</h1>
+                <p class="text-sm text-[#3d3131] mt-0">
+                    Criado por <span class="text-roxo font-bold uppercase">{{ comunidade.expand?.lider?.name || '---' }}</span>
+                </p>
+
+                <!-- about -->
+                <div class="text-left w-full text-sm mb-8">
+                    <div>
+                        <h3 class="font-display mb-2">Sobre nós</h3>
+                        <p class="leading-relaxed opacity-80">{{ comunidade.descricao || 'Sem descrição.' }}</p>
+                    </div>
+                </div>
+
+                <!-- botoes -->
+                <div class="mt-auto w-full flex flex-col gap-2">
+                    <button 
+                        v-if="!souMembro" 
+                        @click="toggleMembership"
+                        class="botao"
+                    >
+                        Entrar na comunidade
+                    </button>
+                    
+                    <button 
+                        v-else-if="souLider" 
+                        class="botao"
+                    >
+                        Editar
+                    </button>
+
+                     <button 
+                        v-else
+                        @click="toggleMembership"
+                        class="botao bg-vermelho"
+                    >
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- col 2 -->
+        <div class="lg:col-span-6 flex flex-col">
+             <!-- header -->
+             <h2
+                class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
+              >
+                Comentários
+              </h2>
+
+            <!-- input -->
+            <div v-if="souMembro" class="bg-[#e6decf] rounded-[30px] p-4 shadow-sm flex gap-4 items-start mb-4">
+                 <div class="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
+                     <!-- Avatar user atual -->
+                     <img v-if="getAvatarUsuario(usuarioAtual)" :src="getAvatarUsuario(usuarioAtual)" class="w-full h-full object-cover" />
+                     <div v-else class="w-full h-full bg-roxo"></div>
+                 </div>
+                 <div class="flex-1 relative">
+                     <textarea 
+                        v-model="novoComentario"
+                        placeholder="Escreva algo..." 
+                        rows="2"
+                        class="w-full bg-incipit-fundo box-border rounded-xl p-3 border-none focus:ring-2 focus:ring-roxo outline-none resize-none text-sm"
+                     ></textarea>
+                     <button 
+                        @click="enviarComentario"
+                        :disabled="!novoComentario.trim() || enviandoComentario"
+                        class="absolute bottom-2 right-2 text-roxo border-0 hover:text-[#7a6a8f] disabled:opacity-50"
+                     >
+                        <div class="i-mdi:send text-xl"></div>
+                     </button>
+                 </div>
+            </div>
+
+            <!-- lista coment  -->
+            <div class="space-y-6 pb-10">
+                <div v-if="comentarios.length === 0" class="text-center opacity-50 py-10">
+                    Nenhum comentário ainda.
+                </div>
+
+                <div v-for="comentario in comentarios" :key="comentario.id" class="flex gap-4 group">
+                    <!-- Avatar Lateral -->
+                    <div class="flex flex-col items-center gap-1 flex-shrink-0 w-16">
+                        <div class="w-12 h-12 rounded-full border-2 border-roxo overflow-hidden bg-white">
+                            <img 
+                                v-if="getAvatarUsuario(comentario.expand?.autor)" 
+                                :src="getAvatarUsuario(comentario.expand?.autor)" 
+                                class="w-full h-full object-cover" 
+                            />
+                            <div v-else class="w-full h-full flex items-center justify-center bg-gray-200">
+                                <div class="i-mdi:account text-gray-400"></div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold text-center leading-tight truncate w-full">
+                            {{ comentario.expand?.autor?.username || 'User' }}
+                        </span>
+                    </div>
+
+                    <!-- Balão de Fala -->
+                    <div class="relative flex-1 bg-incipit-card rounded-[20px] p-5 shadow-sm min-w-0">
+                         <!-- Triângulo do balão -->
+                         <div class="absolute top-6 -left-2 w-4 h-4 bg-incipit-card transform rotate-45"></div>
+                         
+                         <!-- Botão delete (apenas visual por enquanto ou se for dono) -->
+                         <button v-if="comentario.autor === usuarioAtual?.id || souLider" class="absolute top-3 right-3 text-[#3d3131]/30 hover:text-red-500 transition">
+                             <div class="i-mdi:close font-bold"></div>
+                         </button>
+
+                         <!-- Título/Conteúdo -->
+                         <h4 class="font-bold text-[#3d3131] mb-1 text-sm">
+                             {{ comentario.expand?.autor?.name || 'Membro' }} diz:
+                         </h4>
+                         <p class="text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap">
+                             {{ comentario.conteudo }}
+                         </p>
+
+                         <!-- Rodapé do Card -->
+                         <div class="flex justify-between items-center">
+                             <div class="flex gap-4 text-roxo text-xs font-bold">
+                                 <div class="flex items-center gap-1">
+                                     <div class="i-mdi:heart"></div> 0
+                                 </div>
+                                 <div class="flex items-center gap-1">
+                                     <div class="i-mdi:comment"></div> 0
+                                 </div>
+                             </div>
+                             
+                             <div class="bg-roxo text-[#3d3131] px-3 py-1 rounded-full text-[10px] font-bold shadow-sm">
+                                 Sem spoilers
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- col 3 -->
+        <div class="lg:col-span-3 flex flex-col gap-8">
+            
+            <!-- livro com -->
+            <div class="flex flex-col">
+             <h2
+                class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
+              >
+                Livro Comunitário
+              </h2>
+
+                <div class="bg-incipit-card rounded-[30px] p-2 shadow-md min-h-[150px] flex flex-col justify-center items-center text-center">
+                    <div v-if="comunidade.livro_semana" class="w-full">
+                         <!-- capa -->
+                         <div v-if="comunidade.expand?.livro_semana?.capa" class="w-24 h-36 mx-auto mb-3 shadow-lg rounded-md overflow-hidden">
+                             <img :src="comunidade.expand.livro_semana.capa" class="w-full h-full object-cover" />
+                         </div>
+                         
+                         <h3 class="font-bold text-lg leading-tight mb-1">
+                             {{ comunidade.expand?.livro_semana?.Nome || 'Livro Selecionado' }}
+                         </h3>
+                         <p class="text-xs mb-3">
+                             Fim da leitura: {{ formatarData(comunidade.data_fim_leitura) }}
+                         </p>
+                         
+                         <div v-if="diasRestantes !== null" class="bg-roxo/20 text-[#3d3131] px-3 py-1 rounded-full text-xs font-bold inline-block mb-3">
+                             {{ diasRestantes }} dias restantes
+                         </div>
+
+                         <button 
+                            v-if="souLider" 
+                            @click="mostrarModalLivro = true"
+                            class="bg-roxo text-white px-4 py-1 rounded-full text-sm hover:opacity-90 transition block mx-auto mt-2"
+                        >
+                             Trocar Livro
+                         </button>
+                    </div>
+
+                    <div v-else class="flex flex-col items-center">
+                        <p class="font-display text-md mb-4">Nenhum livro comunitário selecionado</p>
+                        <button 
+                            v-if="souLider" 
+                            @click="mostrarModalLivro = true"
+                            class="botao"
+                        >
+                            Selecionar
+                        </button>
+                         <p v-else class="text-xs mt-2">Aguardando o líder selecionar.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- membros -->
+            <div class="flex flex-col">
+             <h2
+                class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
+              >
+                Membros
+              </h2>
+
+                <div class="bg-incipit-card rounded-[30px] p-6 shadow-md h-fit max-h-[400px] overflow-y-auto">
+                    <div v-if="comunidade.expand?.membros" class="space-y-4">
+                        <div v-for="membro in comunidade.expand.membros" :key="membro.id" class="flex items-center gap-3">
+                            <!-- foto -->
+                            <div class="w-10 h-10 rounded-full border-2 border-roxo overflow-hidden bg-white flex-shrink-0">
+                                <img v-if="getAvatarUsuario(membro)" :src="getAvatarUsuario(membro)" class="w-full h-full object-cover" />
+                            </div>
+                            
+                            <!-- membros lista -->
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <span class="font-bold text-sm truncate">{{ membro.name || membro.username }}</span>
+                                <div v-if="membro.id === comunidade.lider" class="i-mdi:crown text-yellow-600 text-sm" title="Líder"></div>
+                            </div>
+
+                            <!-- açoes  -->
+                            <button v-if="souLider && membro.id !== usuarioAtual.id" class="text-roxo bg-[rgba(166,141,173,0.2)] rounded-[100%] border-0 hover:text-red-500">
+                                <div class="i-mdi:close"></div>
+                            </button>
+                        </div>
+                    </div>
+                    <p v-else class="text-center text-sm">Lista vazia.</p>
+                </div>
+            </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- modal  -->
+    <div v-if="mostrarModalLivro" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-[#f3eddb] rounded-[30px] p-5 max-w-md w-full shadow-2xl border-4 border-incipit-card">
+        <h3 class="text-2xl font-display text-[#3d3131] mb-6 mt-2 text-center">Selecionar Livro</h3>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold mb-2 ml-2">ID do Livro</label>
+                <input 
+                  v-model="livroIdInput" 
+                  type="text" 
+                  placeholder="Cole o ISBN aqui..."
+                  class="w-full bg-incipit-card rounded-xl box-border p-3 border-none outline-none focus:ring-2 focus:ring-roxo"
+                />
+                <p class="text-xs mt-1 ml-2 opacity-60">Copie o ID da URL da página do livro.</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-bold mb-2 ml-2">Duração (dias)</label>
+                <input 
+                  v-model.number="diasDuracao" 
+                  type="number" 
+                  min="1" 
+                  class="w-full bg-incipit-card rounded-xl box-border p-3 border-none outline-none focus:ring-2 focus:ring-roxo"
+                />
+            </div>
         </div>
         
-        <div v-else>
-          <p>Nenhum livro da semana definido.</p>
-          <button v-if="souLider" @click="mostrarModalLivro = true">
-            Definir livro da semana
-          </button>
+        <div class="flex gap-4 mt-8">
+            <button @click="mostrarModalLivro = false" class="botao">
+                Cancelar
+            </button>
+            <button @click="salvarLivroSemana" class="botao">
+                Salvar
+            </button>
         </div>
-      </div>
-
-      <hr>
-
-      <!-- COMENTÁRIOS -->
-      <div>
-        <h3>Comentários</h3>
-        
-        <div v-if="souMembro">
-          <h4>Novo Comentário:</h4>
-          <textarea 
-            v-model="novoComentario" 
-            placeholder="Escreva seu comentário..."
-            rows="3"
-            style="width: 100%; max-width: 500px;"
-          ></textarea>
-          <br>
-          <button 
-            @click="enviarComentario" 
-            :disabled="enviandoComentario || !novoComentario.trim()"
-          >
-            {{ enviandoComentario ? 'Enviando...' : 'Enviar Comentário' }}
-          </button>
-        </div>
-        <p v-else>Entre na comunidade para comentar</p>
-
-        <div v-if="comentarios.length > 0">
-          <h4>Comentários ({{ comentarios.length }}):</h4>
-          <div 
-            v-for="comentario in comentarios" 
-            :key="comentario.id"
-            style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;"
-          >
-            <p>
-              <strong>{{ comentario.expand?.autor?.name || comentario.expand?.autor?.username || 'Anônimo' }}</strong>
-              - {{ formatarData(comentario.created) }}
-            </p>
-            <p>{{ comentario.conteudo }}</p>
-          </div>
-        </div>
-        <p v-else style="margin-top: 15px;">Nenhum comentário ainda. Seja o primeiro!</p>
-      </div>
-
-      <hr>
-
-      <div style="margin-top: 20px;">
-        <button v-if="!usuarioAtual" @click="router.push('/login')">
-          Fazer login para participar
-        </button>
-        <button v-else-if="!souMembro" @click="toggleMembership">
-          Entrar na comunidade
-        </button>
-        <button v-else-if="!souLider" @click="toggleMembership">
-          Sair da comunidade
-        </button>
-        <span v-if="souLider" style="color: green; margin-left: 10px;">
-          Você é o líder desta comunidade
-        </span>
       </div>
     </div>
 
-    <!-- MODAL DEFINIR LIVRO -->
-    <div v-if="mostrarModalLivro" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
-      <div style="background: white; padding: 20px; border-radius: 5px; max-width: 400px; width: 90%;">
-        <h3>Definir Livro da Semana</h3>
-        
-        <p>Digite o ID do livro (você pode copiar da URL do livro):</p>
-        
-        <label>ID do Livro:</label>
-        <br>
-        <input 
-          v-model="livroIdInput" 
-          type="text" 
-          placeholder="Ex: abc123..."
-          style="width: 100%; padding: 5px; margin: 5px 0;"
-        />
-        
-        <br><br>
-        
-        <label>Duração (dias):</label>
-        <br>
-        <input 
-          v-model.number="diasDuracao" 
-          type="number" 
-          min="1" 
-          max="365"
-          style="width: 100px; padding: 5px;"
-        />
-        
-        <br><br>
-        
-        <button @click="salvarLivroSemana">Salvar</button>
-        <button @click="mostrarModalLivro = false" style="margin-left: 10px;">Cancelar</button>
-      </div>
-    </div>
   </div>
 </template>

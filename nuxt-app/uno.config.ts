@@ -42,6 +42,7 @@ export default defineConfig({
             'incipit-card': '#DFD3C3',
             'texto': '#4E3939',
             'roxo': '#A68DAD',
+            'vermelho': '#ad8d8dff',
         },
     },    // Shortcuts são atalhos para um grupo de classes
     shortcuts: [
