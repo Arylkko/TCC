@@ -3,13 +3,11 @@
     <Header :show-search="true" />
 
     <main class="livro-container">
-      <!-- Loading -->
       <div v-if="loading" class="loading-container">
         <div class="spinner"></div>
         <p>Carregando informações do livro...</p>
       </div>
 
-      <!-- Error -->
       <div v-else-if="error" class="error-container">
         <div class="i-mdi:alert-circle error-icon"></div>
         <p>{{ error }}</p>
@@ -23,11 +21,9 @@
         class="grid gap-10 relative z-10 container mx-auto py-8 max-w-7xl"
       >
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Coluna Esquerda: Info do Livro -->
           <div class="lg:col-span-2">
             <div class="bg-incipit-card rounded-[30px] shadow-xl p-8">
               <div class="flex flex-col md:flex-row gap-6">
-                <!-- Capa do Livro -->
                 <div class="flex-shrink-0">
                   <div class="w-48 h-72 mx-auto md:mx-0">
                     <img
@@ -36,9 +32,6 @@
                       class="w-full h-full object-cover rounded-lg shadow-lg"
                     />
 
-                    <!-- Botão de Status -->
-
-                    <!-- Dropdown Status -->
                     <div
                       v-if="mostrarDropdownStatus"
                       class="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl overflow-hidden z-20"
@@ -54,7 +47,6 @@
                     </div>
                   </div>
 
-                  <!-- Avaliação com Estrelas -->
                   <div v-if="isAuthenticated" class="livro-status">
                     <select
                       id="status-select"
@@ -74,7 +66,6 @@
                   </div>
                 </div>
 
-                <!-- Informações do Livro -->
                 <div class="flex-1">
                   <h1 class="text-3xl md:text-4xl font-bold text-texto mb-2 font-display">
                     {{ livro.Nome }}
@@ -100,21 +91,25 @@
                     </p>
                   </div>
 
-                  <!-- Sinopse -->
                   <div v-if="dadosAPI.descricao" class="mt-6">
                     <h3 class="text-sm font-semibold text-texto mb-2">Sinopse</h3>
                     <p class="text-texto/80 leading-relaxed text-sm">
-                      {{ dadosAPI.descricao }}
+                      {{ descricaoExibida }}
+                      <button 
+                      v-if="precisaBotaoVerMais"
+                      @click="toggleDescricao"
+                      class="botao py-0.5"
+                    >
+                      {{ descricaoExpandida ? 'Ver menos' : 'Ver mais' }}
+                    </button>
                     </p>
+                    
                   </div>
-
-                  <!-- Status Dropdown -->
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Notas avaliação e tal -->
           <div class="bg-incipit-card rounded-[30px] shadow-xl p-6 h-fit">
             <h3 class="text-2xl font-bold text-texto text-center mb-4 font-display">
               Nota média
@@ -138,7 +133,6 @@
               </div>
             </div>
 
-            <!-- Tags -->
             <div class="livro-tags">
               <h3 class="tags-title">Gêneros/Tags</h3>
               <div class="tags-list text-texto font-bold">
@@ -159,7 +153,6 @@
                   </button>
                 </span>
 
-                <!-- Add Tag -->
                 <div v-if="isAuthenticated" class="tag-add-container">
                   <input
                     v-if="mostrarInputTag"
@@ -184,9 +177,7 @@
           </div>
         </div>
 
-        <!-- Reviews Section -->
-
-        <div class="reviews-section grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="reviews-comments-grid grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <div class="w-full max-w-screen-lg mb-6 sm:mb-8">
               <h2
@@ -197,7 +188,6 @@
               </h2>
             </div>
 
-            <!-- Add Review (if authenticated) -->
             <div v-if="isAuthenticated" class="add-review">
               <h3 class="subsection-title">
                 {{
@@ -205,7 +195,6 @@
                 }}
               </h3>
 
-              <!-- Star Rating -->
               <div class="rating-input">
                 <label>Nota:</label>
                 <div class="rating-stars-input">
@@ -224,7 +213,6 @@
                 </div>
               </div>
 
-              <!-- Review Text -->
               <textarea
                 v-model="resenhaTexto"
                 placeholder="Escreva sua resenha (opcional)..."
@@ -232,7 +220,6 @@
                 rows="5"
               ></textarea>
 
-              <!-- Submit Button -->
               <button
                 @click="enviarAvaliacao"
                 :disabled="avaliacaoNova === 0"
@@ -242,10 +229,13 @@
               </button>
             </div>
 
-            <!-- Card de resenha -->
-            <div v-for="nota in notas" :key="nota.id" @click='ExpandirResenha(nota)' class="review-item grid gap-5">
+            <div
+              v-for="nota in notas"
+              :key="nota.id"
+              @click="ExpandirResenha(nota)"
+              class="review-item grid gap-5"
+            >
               <div class="bg-incipit-card rounded-[30px] shadow-lg p-6 mb-4">
-                <!-- Título e estrelas -->
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
                     <h3 class="text-lg font-semibold text-texto m-0">Título</h3>
@@ -263,18 +253,15 @@
                     </div>
                   </div>
 
-                  <!-- Texto -->
-                  <div v-if="nota.resenha" class="review-text break-all line-clamp-2">{{ nota.resenha }}</div>
+                  <div v-if="nota.resenha" class="review-text break-all line-clamp-2">
+                    {{ nota.resenha }}
+                  </div>
                 </div>
 
-                <!-- Footer -->
                 <div class="flex items-end justify-between mt-10">
-                  <!-- Avatar + info -->
                   <div class="flex items-end gap-3">
-                    <!-- Avatar -->
                     <div class="w-10 h-10 rounded-full bg-roxo flex-shrink-0"></div>
 
-                    <!-- Info -->
                     <div class="flex flex-col">
                       <span class="text-roxo">
                         {{ nota.expand?.autor?.name || "Usuário" }}
@@ -284,7 +271,6 @@
                       }}</span>
                     </div>
 
-                    <!-- botão spoiler -->
                     <div class="flex items-center gap-1 ml-2">
                       <div class="i-mdi:heart text-roxo text-lg"></div>
                       <span class="text-texto/60 text-xs">likes</span>
@@ -302,33 +288,17 @@
                 Nenhuma avaliação ainda. Seja o primeiro a avaliar!
               </p>
             </div>
-              </div>
+          </div>
 
-
-
-
-
-
-    <div class="flex items-start gap-4 max-w-2xl w-full">
-<div class="bg-incipit-card rounded-[30px] shadow-lg p-6 mb-4">
-teste</div>
-<div>teste 2</div>
-    </div>
-
-
-
-
-
-            <!-- Comments Section -->
+          <div>
             <div class="comments-section">
-             <h2
+              <h2
                 class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
               >
                 Comentários
                 <span class="count">({{ comentarios.length }})</span>
               </h2>
 
-              <!-- Add Comment (if authenticated) -->
               <div v-if="isAuthenticated" class="add-comment">
                 <textarea
                   v-model="novoComentario"
@@ -345,90 +315,68 @@ teste</div>
                 </button>
               </div>
 
-
-              <!-- Comments List -->
               <div class="comments-list">
                 <div
                   v-for="comentario in comentarios"
                   :key="comentario.id"
-                  class="comment-item"
+                  class="comment-item flex items-start gap-4"
+                  @click="ExpandirComentario(comentario)"
                 >
-                  <div class="comment-header">
-                    <div class="comment-author">
-                      <div class="i-mdi:account-circle author-icon"></div>
-                      <span class="author-name">
-                        {{
-                          comentario.expand?.autor?.name ||
-                          comentario.expand?.autor?.email ||
-                          "Usuário"
-                        }}
-                      </span>
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0 w-16">
+                    <div
+                      class="w-15 h-15 rounded-full border-2 border-roxo overflow-hidden bg-roxo"
+                    >
+                      <div
+                        class="w-full h-full flex items-center justify-center bg-roxo"
+                      ></div>
                     </div>
-                    <span class="comment-date">{{
-                      formatarData(comentario.created)
-                    }}</span>
+                    <span
+                      class="font-display mt-2 text-texto text-center leading-tight truncate w-full"
+                    >
+                      {{ comentario.expand?.autor?.name || "User" }}
+                    </span>
                   </div>
 
-                  <p class="comment-text">{{ comentario.conteudo }}</p>
-
-                  <!-- Reply Button -->
-                  <button
-                    v-if="isAuthenticated"
-                    @click="iniciarResposta(comentario.id)"
-                    class="comment-reply-button"
-                  >
-                    <div class="i-mdi:reply"></div>
-                    Responder
-                  </button>
-
-                  <!-- Reply Form -->
-                  <div v-if="comentarioRespondendo === comentario.id" class="reply-form">
-                    <textarea
-                      v-model="respostaTexto"
-                      placeholder="Escreva sua resposta..."
-                      class="reply-textarea"
-                      rows="2"
-                    ></textarea>
-                    <div class="reply-actions">
-                      <button
-                        @click="enviarResposta(comentario.id)"
-                        :disabled="!respostaTexto.trim()"
-                        class="btn-small btn-primary"
-                      >
-                        Enviar
-                      </button>
-                      <button @click="cancelarResposta" class="btn-small btn-secondary">
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Replies -->
                   <div
-                    v-if="comentario.respostas && comentario.respostas.length > 0"
-                    class="replies-list"
+                    class="relative flex-1 bg-incipit-card rounded-[20px] p-5 shadow-sm min-w-0"
                   >
                     <div
-                      v-for="resposta in comentario.respostas"
-                      :key="resposta.id"
-                      class="reply-item"
+                      class="absolute top-6 -left-2 w-4 h-4 bg-incipit-card transform rotate-45"
+                    ></div>
+
+                    <button
+                      class="absolute top-3 right-3 text-[#3d3131]/30 hover:text-red-500 transition"
                     >
-                      <div class="comment-header">
-                        <div class="comment-author">
-                          <div class="i-mdi:account-circle author-icon"></div>
-                          <span class="author-name">
-                            {{
-                              resposta.expand?.autor?.name ||
-                              resposta.expand?.autor?.email ||
-                              "Usuário"
-                            }}
-                          </span>
+                      <div class="i-mdi:close font-bold"></div>
+                    </button>
+
+                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
+                      {{ comentario.expand?.autor?.name || "Leitor" }} diz:
+                    </h4>
+                    <p
+                      class="text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap"
+                    >
+                      {{ comentario.conteudo }}
+                    </p>
+
+                    <div class="flex justify-between items-center">
+                      <div class="flex gap-4 text-roxo text-xs">
+                        <div class="flex items-center gap-1">
+                          <div class="i-mdi:heart text-roxo text-lg"></div>
+                          <span class="text-texto/60 text-xs">likes</span>
                         </div>
-                        <span class="comment-date">{{
-                          formatarData(resposta.created)
-                        }}</span>
+
+                        <div class="flex items-center gap-1">
+                            <div class="i-mdi:comment"></div>
+                          comentários
+                        </div>
                       </div>
-                      <p class="comment-text">{{ resposta.conteudo }}</p>
+
+                      <button
+                        class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono"
+                      >
+                        S/C spoilers
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -438,7 +386,7 @@ teste</div>
                 </p>
               </div>
             </div>
-        
+          </div>
         </div>
       </div>
     </main>
@@ -474,13 +422,14 @@ const minhaNotaExistente = ref(null);
 
 // Comments
 const novoComentario = ref("");
-const comentarioRespondendo = ref(null);
-const respostaTexto = ref("");
 
 // Tags
 const mostrarInputTag = ref(false);
 const novaTag = ref("");
 const tagInput = ref(null);
+
+const descricaoExpandida = ref(false);
+const MAX_CARACTERES_SINOPSE = 300;
 
 // Composables
 const { buscarLivroPorISBN, buscarDadosLivroAPI } = useLivros();
@@ -492,15 +441,32 @@ const {
   atualizarMediaAvaliacoes,
 } = useNotas();
 const {
-  buscarComentariosComRespostas,
-  criarComentario,
-  responderComentario,
+  buscarComentariosComRespostas
 } = useComentarios();
 const { OPCOES_STATUS, buscarStatus, definirStatus } = useStatus();
 const { buscarTagsLivro, adicionarOuCriarTag, removerTagDoLivro } = useTags();
 
 const isAuthenticated = computed(() => $pb.authStore.isValid);
 const isbn = computed(() => route.params.isbn);
+
+
+const descricaoExibida = computed(() => {
+  if (!dadosAPI.value.descricao) return '';
+  
+  if (descricaoExpandida.value || dadosAPI.value.descricao.length <= MAX_CARACTERES_SINOPSE) {
+    return dadosAPI.value.descricao;
+  }
+  
+  return dadosAPI.value.descricao.substring(0, MAX_CARACTERES_SINOPSE) + '...';
+});
+
+const precisaBotaoVerMais = computed(() => {
+  return dadosAPI.value.descricao && dadosAPI.value.descricao.length > MAX_CARACTERES_SINOPSE;
+});
+
+function toggleDescricao() {
+  descricaoExpandida.value = !descricaoExpandida.value;
+}
 
 // Load book data
 onMounted(async () => {
@@ -634,54 +600,6 @@ async function enviarAvaliacao() {
   }
 }
 
-// Comments
-async function enviarComentario() {
-  if (!novoComentario.value.trim()) return;
-
-  const dados = {
-    conteudo: novoComentario.value.trim(),
-    autor: $pb.authStore.model.id,
-    livro: livro.value.id,
-  };
-
-  const resultado = await criarComentario(dados);
-
-  if (resultado.sucesso) {
-    novoComentario.value = "";
-    await carregarComentarios();
-  } else {
-    alert("Erro ao enviar comentário: " + resultado.erro);
-  }
-}
-
-function iniciarResposta(comentarioId) {
-  comentarioRespondendo.value = comentarioId;
-  respostaTexto.value = "";
-}
-
-function cancelarResposta() {
-  comentarioRespondendo.value = null;
-  respostaTexto.value = "";
-}
-
-async function enviarResposta(comentarioPaiId) {
-  if (!respostaTexto.value.trim()) return;
-
-  const resultado = await responderComentario(
-    comentarioPaiId,
-    livro.value.id,
-    respostaTexto.value.trim(),
-    $pb.authStore.model.id
-  );
-
-  if (resultado.sucesso) {
-    cancelarResposta();
-    await carregarComentarios();
-  } else {
-    alert("Erro ao enviar resposta: " + resultado.erro);
-  }
-}
-
 // Tags
 function mostrarInputNovaTag() {
   mostrarInputTag.value = true;
@@ -739,20 +657,23 @@ function calcularDistribuicao(estrelas) {
   return (count / notas.value.length) * 100;
 }
 
-
-// teste
-
-function ExpandirResenha(nota){
-  console.log (nota.id);
-if (nota.id) {
-      // Redireciona para a página de detalhes
-      navigateTo(`/nota/${nota.id}`);
-    } else {
-      alert('Nota não encontrada.');
-    }
-
+function ExpandirResenha(nota) {
+  console.log(nota.id);
+  if (nota.id) {
+    navigateTo(`/nota/${nota.id}`);
+  } else {
+    alert("Nota não encontrada.");
+  }
 }
 
+function ExpandirComentario(comentario) {
+  console.log(comentario.id);
+  if (comentario.id) {
+    navigateTo(`/comentario/c${comentario.id}`);
+  } else {
+    alert("Comentário não encontrada.");
+  }
+}
 </script>
 
 <style src="~/styles/pages/livro.css"></style>
