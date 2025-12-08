@@ -18,6 +18,12 @@ const mostrarModalLivro = ref(false);
 const livroIdInput = ref('');
 const diasDuracao = ref(7);
 
+// Busca de livros no modal
+const buscaLivro = ref('');
+const resultadosBusca = ref([]);
+const buscandoLivros = ref(false);
+const livroSelecionado = ref(null);
+
 // Comentários
 const comentarios = ref([]);
 const novoComentario = ref('');
@@ -34,6 +40,8 @@ const {
   criarComentario
 } = useComunidades();
 
+const { buscarDadosLivroAPI } = useLivros();
+
 const usuarioAtual = computed(() => $pb.authStore.model);
 const souLider = computed(() => ehLider(comunidade.value));
 const souMembro = computed(() => ehMembro(comunidade.value));
@@ -41,7 +49,7 @@ const souMembro = computed(() => ehMembro(comunidade.value));
 // Avatar da Comunidade (Placeholder se não tiver)
 const avatarComunidade = computed(() => {
     if (comunidade.value?.imagem_comunidade) {
-        return $pb.files.getUrl(comunidade.value, comunidade.value.imagem_comunidade)
+        return $pb.files.getURL(comunidade.value, comunidade.value.imagem_comunidade)
     }
     return 'https://via.placeholder.com/150/000000/FFFFFF/?text=' + (comunidade.value?.nome?.[0] || 'C');
 });
@@ -49,7 +57,7 @@ const avatarComunidade = computed(() => {
 // Avatar do Usuário (Helper)
 function getAvatarUsuario(usuario) {
     if (usuario?.avatar) {
-        return $pb.files.getUrl(usuario, usuario.avatar);
+        return $pb.files.getURL(usuario, usuario.avatar);
     }
     return null;
 }
@@ -135,21 +143,112 @@ async function toggleMembership() {
 }
 
 async function salvarLivroSemana() {
-  if (!livroIdInput.value.trim()) {
-    alert('Digite o ID do livro');
+  if (!livroSelecionado.value) {
+    alert('Selecione um livro primeiro');
     return;
   }
 
-  const resultado = await definirLivroSemana(comunidadeId, livroIdInput.value, diasDuracao.value);
+  const resultado = await definirLivroSemana(comunidadeId, livroSelecionado.value.id, diasDuracao.value);
   
   if (resultado.sucesso) {
     alert('Livro da semana definido com sucesso!');
     mostrarModalLivro.value = false;
-    livroIdInput.value = '';
+    livroSelecionado.value = null;
+    buscaLivro.value = '';
+    resultadosBusca.value = [];
     await carregarComunidade();
   } else {
     alert('Erro: ' + resultado.erro);
   }
+}
+
+// Buscar livros na API do Google Books
+async function buscarLivrosAPI() {
+  if (!buscaLivro.value.trim()) {
+    resultadosBusca.value = [];
+    return;
+  }
+
+  buscandoLivros.value = true;
+  
+  try {
+    const query = encodeURIComponent(buscaLivro.value.trim());
+    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=10`);
+    const data = await response.json();
+
+    if (data.items && data.items.length > 0) {
+      resultadosBusca.value = data.items.map(item => ({
+        googleId: item.id,
+        isbn: item.volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier || 
+              item.volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier || '',
+        nome: item.volumeInfo.title || 'Título não disponível',
+        autor: item.volumeInfo.authors?.join(', ') || 'Autor desconhecido',
+        capa: item.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+        editora: item.volumeInfo.publisher || '',
+        anoPublicacao: item.volumeInfo.publishedDate?.split('-')[0] || ''
+      }));
+    } else {
+      resultadosBusca.value = [];
+    }
+  } catch (error) {
+    console.error('Erro ao buscar livros:', error);
+    alert('Erro ao buscar livros');
+  } finally {
+    buscandoLivros.value = false;
+  }
+}
+
+// Selecionar livro e salvar no PocketBase se não existir
+async function selecionarLivro(livro) {
+  try {
+    // Verificar se o livro já existe no PocketBase
+    let livroNoBanco = null;
+    
+    if (livro.isbn) {
+      try {
+        livroNoBanco = await $pb.collection('livro').getFirstListItem(`ISBN = "${livro.isbn}"`);
+      } catch (error) {
+        // Livro não existe, vamos criar
+        if (error.status === 404) {
+          const novoLivro = await $pb.collection('livro').create({
+            ISBN: livro.isbn,
+            Nome: livro.nome,
+            Autor: livro.autor,
+            Editora: livro.editora,
+            Ano_publicacao: livro.anoPublicacao
+          });
+          livroNoBanco = novoLivro;
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      // Sem ISBN, criar livro mesmo assim
+      const novoLivro = await $pb.collection('livro').create({
+        ISBN: livro.googleId, // Usar ID do Google como fallback
+        Nome: livro.nome,
+        Autor: livro.autor,
+        Editora: livro.editora,
+        Ano_publicacao: livro.anoPublicacao
+      });
+      livroNoBanco = novoLivro;
+    }
+
+    // Armazenar o livro selecionado com a capa da API
+    livroSelecionado.value = {
+      ...livroNoBanco,
+      capa: livro.capa // Manter a capa da API para exibição
+    };
+
+  } catch (error) {
+    console.error('Erro ao selecionar livro:', error);
+    alert('Erro ao selecionar livro: ' + error.message);
+  }
+}
+
+// Limpar seleção
+function limparSelecao() {
+  livroSelecionado.value = null;
 }
 
 async function enviarComentario() {
@@ -446,43 +545,114 @@ onMounted(async () => {
         </div>
 
       </div>
-    </main>
-
-    <!-- modal  -->
+    </main>    <!-- Modal Selecionar Livro -->
     <div v-if="mostrarModalLivro" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-[#f3eddb] rounded-[30px] p-5 max-w-md w-full shadow-2xl border-4 border-incipit-card">
-        <h3 class="text-2xl font-display text-[#3d3131] mb-6 mt-2 text-center">Selecionar Livro</h3>
+      <div class="bg-[#f3eddb] rounded-[30px] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-incipit-card">
+        <h3 class="text-2xl font-display text-[#3d3131] mb-6 text-center">Selecionar Livro Comunitário</h3>
         
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-bold mb-2 ml-2">ID do Livro</label>
-                <input 
-                  v-model="livroIdInput" 
-                  type="text" 
-                  placeholder="Cole o ISBN aqui..."
-                  class="w-full bg-incipit-card rounded-xl box-border p-3 border-none outline-none focus:ring-2 focus:ring-roxo"
-                />
-                <p class="text-xs mt-1 ml-2 opacity-60">Copie o ID da URL da página do livro.</p>
+        <!-- Campo de Busca -->
+        <div class="mb-6">
+          <div class="relative">
+            <input 
+              v-model="buscaLivro"
+              @input="buscarLivrosAPI"
+              type="text" 
+              placeholder="Digite o nome do livro para buscar..."
+              class="w-full bg-incipit-card rounded-xl box-border p-4 pr-12 border-none outline-none focus:ring-2 focus:ring-roxo"
+            />
+            <div v-if="buscandoLivros" class="absolute right-4 top-1/2 -translate-y-1/2">
+              <div class="i-mdi:loading animate-spin text-2xl text-roxo"></div>
             </div>
-            
-            <div>
-                <label class="block text-sm font-bold mb-2 ml-2">Duração (dias)</label>
-                <input 
-                  v-model.number="diasDuracao" 
-                  type="number" 
-                  min="1" 
-                  class="w-full bg-incipit-card rounded-xl box-border p-3 border-none outline-none focus:ring-2 focus:ring-roxo"
-                />
+            <div v-else class="absolute right-4 top-1/2 -translate-y-1/2">
+              <div class="i-mdi:magnify text-2xl text-roxo/50"></div>
             </div>
+          </div>
+          <p class="text-xs mt-2 ml-2 opacity-60">Busque por título, autor ou ISBN</p>
+        </div>
+
+        <!-- Livro Selecionado -->
+        <div v-if="livroSelecionado" class="mb-6 p-4 bg-roxo/10 rounded-xl border-2 border-roxo">
+          <div class="flex items-center gap-4">
+            <img 
+              v-if="livroSelecionado.capa" 
+              :src="livroSelecionado.capa" 
+              :alt="livroSelecionado.Nome"
+              class="w-16 h-24 object-cover rounded-lg shadow-md"
+            />
+            <div class="flex-1">
+              <h4 class="font-bold text-lg">{{ livroSelecionado.Nome }}</h4>
+              <p class="text-sm opacity-70">{{ livroSelecionado.Autor }}</p>
+              <p class="text-xs mt-1 text-roxo font-bold">✓ Selecionado</p>
+            </div>
+            <button 
+              @click="limparSelecao"
+              class="text-red-500 hover:text-red-700"
+            >
+              <div class="i-mdi:close text-2xl"></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Resultados da Busca -->
+        <div v-if="resultadosBusca.length > 0 && !livroSelecionado" class="mb-6 max-h-96 overflow-y-auto space-y-2">
+          <p class="text-sm font-bold mb-3">Resultados da busca:</p>
+          <div 
+            v-for="livro in resultadosBusca" 
+            :key="livro.googleId"
+            @click="selecionarLivro(livro)"
+            class="flex gap-3 p-3 bg-incipit-card rounded-xl hover:bg-roxo/20 cursor-pointer transition"
+          >
+            <img 
+              v-if="livro.capa" 
+              :src="livro.capa" 
+              :alt="livro.nome"
+              class="w-12 h-16 object-cover rounded shadow-sm"
+            />
+            <div class="w-12 h-16 bg-gray-200 rounded flex items-center justify-center" v-else>
+              <div class="i-mdi:book text-gray-400"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-sm truncate">{{ livro.nome }}</h4>
+              <p class="text-xs opacity-70 truncate">{{ livro.autor }}</p>
+              <p class="text-xs opacity-50">{{ livro.anoPublicacao }}</p>
+            </div>
+            <div class="i-mdi:chevron-right text-2xl text-roxo/50"></div>
+          </div>
+        </div>
+
+        <!-- Mensagem vazia -->
+        <div v-if="buscaLivro && resultadosBusca.length === 0 && !buscandoLivros && !livroSelecionado" class="text-center py-8 opacity-50">
+          <div class="i-mdi:book-search text-5xl mb-2"></div>
+          <p>Nenhum livro encontrado</p>
+        </div>
+
+        <!-- Duração -->
+        <div v-if="livroSelecionado" class="mb-6">
+          <label class="block text-sm font-bold mb-2 ml-2">Duração da leitura (dias)</label>
+          <input 
+            v-model.number="diasDuracao" 
+            type="number" 
+            min="1" 
+            max="365"
+            class="w-full bg-incipit-card rounded-xl box-border p-3 border-none outline-none focus:ring-2 focus:ring-roxo"
+          />
         </div>
         
-        <div class="flex gap-4 mt-8">
-            <button @click="mostrarModalLivro = false" class="botao">
-                Cancelar
-            </button>
-            <button @click="salvarLivroSemana" class="botao">
-                Salvar
-            </button>
+        <!-- Botões -->
+        <div class="flex gap-4 mt-6">
+          <button 
+            @click="mostrarModalLivro = false; limparSelecao(); buscaLivro = ''; resultadosBusca = [];" 
+            class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-full font-bold hover:bg-gray-400 transition"
+          >
+            Cancelar
+          </button>
+          <button 
+            @click="salvarLivroSemana" 
+            :disabled="!livroSelecionado"
+            class="flex-1 bg-roxo text-white px-6 py-3 rounded-full font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Confirmar Seleção
+          </button>
         </div>
       </div>
     </div>

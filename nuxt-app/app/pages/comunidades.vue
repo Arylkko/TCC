@@ -144,7 +144,7 @@ onMounted(() => {
             <div class="w-48 h-48 mx-auto mb-6 rounded-full border-4 border-roxo bg-incipit-base overflow-hidden">
               <img 
                 v-if="comunidade.imagem_comunidade"
-                :src="$pb.files.getUrl(comunidade, comunidade.imagem_comunidade)"
+                :src="$pb.files.getURL(comunidade, comunidade.imagem_comunidade)"
                 :alt="comunidade.nome"
                 class="w-full h-full object-cover"
               />

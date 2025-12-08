@@ -1,4 +1,3 @@
-
 export const useLivros = () => {
   const { $pb } = useNuxtApp();
   const config = useRuntimeConfig();
@@ -24,7 +23,8 @@ export const useLivros = () => {
             descricao: livro.description || '',
             editora: livro.publisher || '',
             dataPublicacao: livro.publishedDate || '',
-            paginas: livro.pageCount || 0
+            paginas: livro.pageCount || 0,
+            genero: livro.categories || null  // Adicionar categories como genero
           }
         };
       }

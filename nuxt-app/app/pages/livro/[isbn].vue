@@ -428,6 +428,9 @@ const mostrarInputTag = ref(false);
 const novaTag = ref("");
 const tagInput = ref(null);
 
+// Status dropdown
+const mostrarDropdownStatus = ref(false);
+
 const descricaoExpandida = ref(false);
 const MAX_CARACTERES_SINOPSE = 300;
 
@@ -549,6 +552,30 @@ async function carregarMinhaAvaliacao() {
     minhaNotaExistente.value = resultado.dados;
     avaliacaoNova.value = resultado.dados.avaliacao;
     resenhaTexto.value = resultado.dados.resenha || "";
+  }
+}
+
+// Comments
+async function enviarComentario() {
+  if (!novoComentario.value.trim()) return;
+
+  try {
+    const dados = {
+      conteudo: novoComentario.value.trim(),
+      autor: $pb.authStore.model.id,
+      livro: livro.value.id
+    };
+
+    const resultado = await $pb.collection('comentario').create(dados);
+
+    if (resultado) {
+      novoComentario.value = '';
+      await carregarComentarios();
+      alert('Comentário publicado com sucesso!');
+    }
+  } catch (error) {
+    console.error('Erro ao enviar comentário:', error);
+    alert('Erro ao publicar comentário: ' + error.message);
   }
 }
 

@@ -47,7 +47,12 @@
       
     </form>    <!-- User Menu (apenas se showUserMenu for true E não for página de auth) -->
     <div v-if="showUserMenu && variant !== 'auth'" class="user-menu-livro">
-      <div class="i-mdi:account-circle user-icon" title="Perfil"></div>
+      <div 
+        class="i-mdi:account-circle user-icon" 
+        title="Perfil"
+        @click="irParaPerfil"
+        style="cursor: pointer;"
+      ></div>
       <div class="i-mdi:menu menu-icon" title="Menu"></div>
     </div>
 
@@ -151,6 +156,13 @@ function handleLogout() {
   $pb.authStore.clear();
   showMenu.value = false;
   router.push('/login');
+}
+
+function irParaPerfil() {
+  const userId = $pb.authStore.model?.id;
+  if (userId) {
+    router.push(`/usuario/${userId}`);
+  }
 }
 </script>
 
