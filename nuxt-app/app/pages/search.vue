@@ -6,7 +6,7 @@ import { useSearch } from "~/composables/useSearch";
 
 const { $pb } = useNuxtApp();
 const route = useRoute();
-const router = useRouter(); // Importamos o useRouter para manipular a rota
+const router = useRouter();
 
 const searchTerm = ref("");
 const results = ref([]);
@@ -23,6 +23,7 @@ const searchType = ref("livros");
 const filtroAtivo = ref(""); 
 const ordenacaoData = ref("desc"); 
 const ordenacaoNota = ref("desc");
+const mostrandoRecomendados = ref(false);
 
 // Filtros avançados
 const generosSelecionados = ref([]);
@@ -49,43 +50,39 @@ watch([filtroAtivo, ordenacaoData, ordenacaoNota], () => {
   }
 });
 
-// --- NOVO WATCH PARA SINCRONIZAR O TERMO DE BUSCA COM A URL ---
+// Watch para sincronizar o termo de busca com a URL
 watch(
   () => route.query.q,
   (newQ) => {
-    // 1. Atualiza o estado local `searchTerm` se a URL mudar
     if (newQ !== searchTerm.value) {
       searchTerm.value = newQ || "";
     }
-    // 2. Se a rota mudou e temos um termo, disparamos a busca
     if (newQ && !loading.value) {
-      searchBooks(false); // Não atualiza a URL, apenas busca
+      searchBooks(false);
+    } else if (!newQ && !loading.value) {
+      // Se não há busca, carregar livros recomendados
+      carregarLivrosRecomendados();
     }
   },
-  { immediate: true } // Dispara na montagem para ler o termo inicial
+  { immediate: true }
 );
 
-// Watch para garantir que, ao digitar, o URL reflita o estado (debounced)
+// Watch para garantir que ao digitar o URL reflita o estado
 let updateTimeout = null;
 watch(searchTerm, (newTerm) => {
   clearTimeout(updateTimeout);
   
   if (route.query.q !== newTerm) {
-      // Pequeno debounce para não floodar o histórico do navegador ao digitar
-      updateTimeout = setTimeout(() => {
-          // Atualiza a URL sem recarregar a página (shallow)
-          router.replace({ query: { ...route.query, q: newTerm || undefined } });
-      }, 300);
+    updateTimeout = setTimeout(() => {
+      router.replace({ query: { ...route.query, q: newTerm || undefined } });
+    }, 300);
   }
 });
-// -------------------------------------------------------------
 
 onMounted(async () => {
   if (route.query.lista) {
     listaEspecifica.value = route.query.lista;
   }
-
-  // Removido: A inicialização da busca pela URL agora é feita no `watch(route.query.q)`
 
   if ($pb.authStore.isValid) {
     const resultado = await buscarListasUsuario($pb.authStore.model.id);
@@ -101,8 +98,77 @@ onUnmounted(() => {
   window.removeEventListener("scroll", handleScroll);
 });
 
-// --- LÓGICA DE FILTROS E ENRIQUECIMENTO ---
+// Carregar livros recentes do banco de dados
+async function carregarLivrosRecomendados() {
+  loading.value = true;
+  mostrandoRecomendados.value = true;
+  error.value = "";
+  results.value = [];
+  todosOsResultados.value = [];
+  
+  try {
+    // Buscar livros mais recentes do banco de dados
+    const livrosPB = await $pb.collection('livro').getList(1, 28, {
+      sort: '-created', // Mais recentes primeiro
+      expand: 'tags',
+    });
 
+    if (livrosPB.items.length === 0) {
+      error.value = "Nenhum livro disponível no momento.";
+      loading.value = false;
+      return;
+    }
+
+    // Converter livros do PocketBase para o formato do Google Books
+    const livrosConvertidos = await Promise.all(
+      livrosPB.items.map(async (livro) => {
+        // Buscar dados completos da API do Google Books
+        try {
+          const resultado = await buscarLivros(livro.ISBN, 0, 1);
+          if (resultado.sucesso && resultado.dados.length > 0) {
+            const livroGoogle = resultado.dados[0];
+            // Adicionar tags do PocketBase
+            livroGoogle.tagsNomes = livro.expand?.tags?.map(t => t.nome) || [];
+            return livroGoogle;
+          }
+        } catch (e) {
+          console.error(`Erro ao buscar livro ${livro.ISBN}:`, e);
+        }
+        
+        // Fallback: criar objeto básico se não encontrar na API
+        return {
+          id: livro.id,
+          volumeInfo: {
+            title: livro.Nome,
+            authors: ['Autor desconhecido'],
+            imageLinks: {
+              thumbnail: '/placeholder-book.jpg'
+            },
+            industryIdentifiers: [{ type: 'ISBN_13', identifier: livro.ISBN }]
+          },
+          tagsNomes: livro.expand?.tags?.map(t => t.nome) || []
+        };
+      })
+    );
+
+    // Filtrar livros válidos
+    const livrosValidos = livrosConvertidos.filter(l => l !== null && l !== undefined);
+    
+    todosOsResultados.value = livrosValidos;
+    results.value = livrosValidos;
+    
+    atualizarFiltrosDisponiveis();
+    hasMore.value = false;
+    
+  } catch (e) {
+    console.error("Erro ao carregar livros recentes:", e);
+    error.value = "Erro ao carregar livros recentes.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Função de enriquecimento com tags
 async function enriquecerResultadosComTags(livrosGoogle) {
   const isbns = livrosGoogle
     .map((item) => {
@@ -202,8 +268,7 @@ function limparFiltrosAvancados() {
   aplicarOrdenacao();
 }
 
-// --- BUSCA E SCROLL (Função searchBooks agora não mexe na URL) ---
-
+// Busca de livros
 async function searchBooks(updateUrl = true) {
   error.value = "";
   results.value = [];
@@ -213,19 +278,20 @@ async function searchBooks(updateUrl = true) {
   filtroAtivo.value = "";
   generosSelecionados.value = [];
   tagsSelecionadas.value = [];
+  mostrandoRecomendados.value = false;
 
   const currentTerm = searchTerm.value.trim();
-  if (!currentTerm) return;
+  if (!currentTerm) {
+    // Se não há termo, carregar recomendados
+    await carregarLivrosRecomendados();
+    return;
+  }
 
-  // Se a chamada veio da UI (e não do watcher do URL), garantimos que o URL está correto
   if (updateUrl && route.query.q !== currentTerm) {
-    // Usamos push para adicionar ao histórico (útil se você quer que o botão voltar funcione)
     router.push({ query: { ...route.query, q: currentTerm } });
-    // O restante da lógica de busca será disparado pelo `watch(route.query.q)`
     return; 
   }
 
-  // Se chegamos aqui, ou a URL já estava correta, ou updateUrl era false
   loading.value = true;
 
   try {
@@ -260,7 +326,7 @@ async function searchBooks(updateUrl = true) {
 }
 
 async function loadMoreBooks() {
-  if (loadingMore.value || !hasMore.value) return;
+  if (loadingMore.value || !hasMore.value || mostrandoRecomendados.value) return;
 
   loadingMore.value = true;
 
@@ -306,14 +372,14 @@ function handleScroll() {
     scrollPosition >= pageHeight * 0.8 &&
     !loadingMore.value &&
     hasMore.value &&
-    todosOsResultados.value.length > 0
+    todosOsResultados.value.length > 0 &&
+    !mostrandoRecomendados.value
   ) {
     loadMoreBooks();
   }
 }
 
-// --- ORDENAÇÃO E UTILITÁRIOS ---
-
+// Ordenação
 function toggleFiltroData() {
   if (filtroAtivo.value === "data") {
     ordenacaoData.value = ordenacaoData.value === "desc" ? "asc" : "desc";
@@ -378,7 +444,7 @@ async function aplicarOrdenacao() {
   results.value = resultadosOrdenados;
 }
 
-// ... (Funções de salvamento e lista inalteradas) ...
+// Funções de salvamento e lista
 async function salvarLivroNoBanco(item) {
   const id = item.id;
   saveStatus.value[id] = "salvando";
@@ -470,10 +536,35 @@ async function adicionarLivroALista(listaId) {
       <div class="max-w-screen-xl mx-auto mb-6">
         <div v-if="results.length > 0 || todosOsResultados.length > 0" class="text-center mb-6">
           <h2 class="text-3xl text-texto mb-4">
-            <span class="font-bold">{{ results.length }}</span>
-            <span class="font-display"> resultados para </span>
-            <span class="font-display text-roxo">"{{ searchTerm }}"</span>
+            <span v-if="mostrandoRecomendados">
+              <span class="font-bold">Livros Recentes</span>
+              <span class="font-display"> - Adicionados recentemente</span>
+            </span>
+            <span v-else>
+              <span class="font-bold">{{ results.length }}</span>
+              <span class="font-display"> resultados para </span>
+              <span class="font-display text-roxo">"{{ searchTerm }}"</span>
+            </span>
           </h2>
+
+          <!-- Filtros superiores -->
+          <div class="flex items-center justify-center gap-3 mb-3">
+            <span class="text-texto text-sm">Pesquisar por:</span>
+              <button 
+                class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
+                @click="searchType = 'livros'"
+              >
+                Livros
+              </button>
+
+              <button 
+                class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
+                @click="navigateTo('/comunidades')"
+              >
+                Comunidades
+              </button>
+            </div>
+            
 
           <div class="flex items-center justify-end gap-2 text-sm">
             <button
@@ -511,7 +602,7 @@ async function adicionarLivroALista(listaId) {
 
         <div v-if="loading && results.length === 0" class="text-center py-12">
           <div class="inline-block animate-spin i-mdi:loading text-4xl text-roxo"></div>
-          <p class="text-texto mt-4">Buscando livros...</p>
+          <p class="text-texto mt-4">{{ mostrandoRecomendados ? 'Carregando livros recentes...' : 'Buscando livros...' }}</p>
         </div>
 
         <div v-if="error && !loading" class="text-center py-12">

@@ -27,7 +27,7 @@
           <input
             v-model="localSearchTerm"
             type="text"
-            placeholder="Pesquisar livros..."
+            :placeholder="searchPlaceholder"
             class="search-input-livro font-sono !bg-incipit-card box-border"
             :class="{ 'input-expanded': isExpanded || localSearchTerm }"
             @focus="handleFocus"
@@ -52,36 +52,36 @@
 import { ref, computed, watch } from "vue";
 
 const props = defineProps({
-  // Controla se mostra a barra de busca
   showSearch: {
     type: Boolean,
     default: false,
   },
-  // Controla se mostra o menu de usuário (ícones de perfil e menu)
   showUserMenu: {
     type: Boolean,
     default: true,
   },
-  // Permite que o campo de busca expanda ao focar
   expandable: {
     type: Boolean,
     default: false,
   },
-  // Estado de loading (para animação na lupa)
   loading: {
     type: Boolean,
     default: false,
   },
-  // Termo de busca (v-model)
   searchTerm: {
     type: String,
     default: "",
   },
-  // Variante do header ('book', 'search' ou 'auth')
   variant: {
     type: String,
     default: "book",
     validator: (value) => ["book", "search", "auth"].includes(value),
+  },
+  // Nova prop para identificar o contexto de busca
+  searchContext: {
+    type: String,
+    default: "livros", // 'livros' ou 'comunidades'
+    validator: (value) => ["livros", "comunidades"].includes(value),
   },
 });
 
@@ -96,6 +96,13 @@ const isExpanded = ref(false);
 const showMenu = ref(false);
 
 const isAuthenticated = computed(() => $pb.authStore.isValid);
+
+// Placeholder dinâmico baseado no contexto
+const searchPlaceholder = computed(() => {
+  return props.searchContext === "comunidades" 
+    ? "Pesquisar comunidades..." 
+    : "Pesquisar livros...";
+});
 
 // Sincroniza prop com estado local
 watch(
@@ -128,9 +135,13 @@ function handleSearch() {
   // Emite evento para a página pai
   emit("search", localSearchTerm.value);
 
-  // Se não houver listener, faz navegação padrão
+  // Se não houver listener, faz navegação baseada no contexto
   if (props.variant === "book") {
-    router.push(`/search?q=${encodeURIComponent(localSearchTerm.value)}`);
+    if (props.searchContext === "comunidades") {
+      router.push(`/comunidades?q=${encodeURIComponent(localSearchTerm.value)}`);
+    } else {
+      router.push(`/search?q=${encodeURIComponent(localSearchTerm.value)}`);
+    }
     localSearchTerm.value = "";
   }
 }
