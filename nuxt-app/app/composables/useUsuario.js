@@ -1,4 +1,3 @@
-
 export const useUsuario = () => {
   const { $pb } = useNuxtApp();
 
@@ -11,7 +10,9 @@ export const useUsuario = () => {
       console.error('Erro ao buscar usuário:', error);
       return { sucesso: false, erro: error.message };
     }
-  };  // Atualizar perfil do usuário
+  };
+
+  // Atualizar perfil do usuário
   const atualizarPerfil = async (userId, dados) => {
     try {
       // Se for apenas texto (Description com D maiúsculo), usa objeto simples
@@ -44,7 +45,9 @@ export const useUsuario = () => {
     } catch (error) {
       return { sucesso: false, erro: error.message };
     }
-  };  // Calcular nível baseado no XP (a cada 100 XP = 1 nível)
+  };
+
+  // Calcular nível baseado no XP (a cada 100 XP = 1 nível)
   const calcularNivel = (xp = 0) => {
     return Math.floor(xp / 100) + 1;
   };
@@ -79,7 +82,8 @@ export const useUsuario = () => {
       console.error('Erro ao buscar conquistas:', error);
       return { sucesso: false, erro: error.message, dados: [] };
     }
-  };  
+  };
+  
   const buscarTotalLivrosLidos = async (userId) => {
     try {
       // Busca na collection 'status' onde nome = 'Lido'
@@ -94,7 +98,9 @@ export const useUsuario = () => {
       console.error('Erro ao buscar total de livros lidos:', error);
       return { sucesso: false, total: 0 };
     }
-  };  // Buscar livros favoritos (avaliação >= 3)
+  };
+
+  // Buscar livros favoritos (avaliação >= 3)
   const buscarLivrosFavoritos = async (userId) => {
     try {
       const notas = await $pb.collection('notas').getList(1, 10, {
@@ -108,44 +114,51 @@ export const useUsuario = () => {
       console.error('Erro ao buscar livros favoritos:', error);
       return { sucesso: false, dados: [] };
     }
-  };// Buscar listas do usuário
+  };
+
+  // Buscar listas do usuário
   const buscarListasUsuario = async (userId) => {
     try {
       const listas = await $pb.collection('listas').getList(1, 50, {
-        filter: `autor = "${userId}"`,  // Campo é 'autor', não 'usuario'!
+        filter: `autor = "${userId}"`,
         sort: '-created'
       });
 
-      // Para cada lista, buscar quantidade de livros
-      const listasComContagem = await Promise.all(
-        listas.items.map(async (lista) => {
-          try {
-            const livrosLista = await $pb.collection('livro_lista').getList(1, 1, {
-              filter: `lista = "${lista.id}"`,
-              fields: 'id'
-            });
-
-            return {
-              ...lista,
-              totalLivros: livrosLista.totalItems || 0
-            };
-          } catch (err) {
-            return { ...lista, totalLivros: 0 };
-          }
-        })
-      );
+      // Contagem de livros usando o campo 'livros' da lista
+      const listasComContagem = listas.items.map((lista) => ({
+        ...lista,
+        totalLivros: lista.livros?.length || 0
+      }));
 
       return { sucesso: true, dados: listasComContagem };
     } catch (error) {
+      console.error('Erro ao buscar listas:', error);
       return { sucesso: false, dados: [] };
+    }
+  };
+
+  // Buscar comunidades do usuário
+  const buscarComunidadesUsuario = async (userId) => {
+    try {
+      const comunidades = await $pb.collection('comunidade').getList(1, 50, {
+        filter: `membros ~ "${userId}"`,  // Operador ~ para verificar se userId está no array membros
+        sort: '-created',
+        $autoCancel: false
+      });
+      
+      return { sucesso: true, dados: comunidades.items || [] };  // Retorna .items
+    } catch (error) {
+      console.error('Erro ao buscar comunidades:', error);
+      return { sucesso: true, dados: [] };  // Retorna array vazio mas com sucesso para não travar
     }
   };
 
   // Verificar se é o próprio usuário
   const ehProprioUsuario = (userId) => {
     const usuarioAtual = $pb.authStore.model;
-    return usuarioAtual && usuarioAtual.id === userId;
+    return usuarioAtual && String(usuarioAtual.id) === String(userId);
   };
+
   // Adicionar XP ao usuário
   const adicionarXP = async (userId, quantidade) => {
     try {
@@ -174,6 +187,7 @@ export const useUsuario = () => {
     buscarLivrosFavoritos,
     buscarListasUsuario,
     ehProprioUsuario,
-    adicionarXP
+    adicionarXP,
+    buscarComunidadesUsuario
   };
 };

@@ -11,7 +11,7 @@ export const useHome = () => {
         $autoCancel: false  // Evita auto-cancelamento
       });
 
-      console.log('📚 Status lendo encontrados:', statusLendo.items.length);
+      
 
       // Enriquecer com dados da API
       const livrosComDados = await Promise.all(
@@ -44,25 +44,25 @@ export const useHome = () => {
   // Buscar gêneros dos livros que o usuário já leu ou está lendo
   const buscarGenerosUsuario = async (userId) => {
     try {
-      console.log('🎨 Buscando gêneros do usuário:', userId);
+      
       const statusLidos = await $pb.collection('status').getList(1, 50, {
         filter: `usuario = "${userId}" && (nome = "Lido" || nome = "Lendo")`,
         expand: 'livro',
         $autoCancel: false
       });
 
-      console.log('📚 Livros lidos/lendo encontrados:', statusLidos.items.length);
+ 
 
       const generos = new Set();      for (const item of statusLidos.items) {
         const livro = item.expand?.livro;
         if (!livro?.ISBN) {
-          console.log('⚠️ Livro sem ISBN:', livro);
+       
           continue;
         }
 
-        console.log('📖 Buscando dados da API para ISBN:', livro.ISBN);
+       
         const dadosAPI = await buscarDadosLivroAPI(livro.ISBN);
-        console.log('📊 Dados retornados:', dadosAPI);
+       
         
         if (dadosAPI.sucesso && dadosAPI.dados.genero) {
           // Genero pode vir como array ou string
@@ -72,11 +72,11 @@ export const useHome = () => {
             generos.add(dadosAPI.dados.genero);
           }
         } else {
-          console.log('⚠️ Nenhum gênero encontrado para:', livro.Nome);
+     
         }
       }
 
-      console.log('✅ Gêneros finais:', Array.from(generos));
+    
       return Array.from(generos);
     } catch (error) {
       console.error('Erro ao buscar gêneros:', error);
@@ -86,18 +86,18 @@ export const useHome = () => {
   // Buscar recomendações baseadas em gênero
   const buscarRecomendacoesPorGenero = async (userId) => {
     try {
-      console.log('🎯 Buscando recomendações por gênero para:', userId);
-      // 1. Buscar gêneros que o usuário gosta
+     
+      //  Buscar gêneros que o usuário gosta
       const generos = await buscarGenerosUsuario(userId);
       console.log('📖 Gêneros encontrados:', generos);
       if (generos.length === 0) {
         return { sucesso: true, dados: [] };
       }
 
-      // 2. Buscar todos os livros do sistema
+      // Buscar todos os livros do sistema
       const todosLivros = await $pb.collection('livro').getList(1, 50, {
         sort: '-created'
-      });      // 3. Buscar livros que o usuário já tem (para não recomendar)
+      });      // Buscar livros que o usuário já tem (para não recomendar)
       const statusUsuario = await $pb.collection('status').getList(1, 200, {
         filter: `usuario = "${userId}"`,
         fields: 'livro',
@@ -106,7 +106,7 @@ export const useHome = () => {
 
       const livrosUsuario = new Set(statusUsuario.items.map(s => s.livro));
 
-      // 4. Filtrar e enriquecer com dados da API
+      // Filtrar e enriquecer com dados da API
       const recomendacoes = [];
       
       for (const livro of todosLivros.items) {
@@ -147,7 +147,7 @@ export const useHome = () => {
   };
   // Buscar livros mais bem avaliados (populares)
   const buscarLivrosPopulares = async () => {
-    try {      console.log('⭐ Buscando livros populares...');
+    try {   
       // Buscar todas as notas
       const todasNotas = await $pb.collection('notas').getList(1, 500, {
         expand: 'livro',
@@ -155,15 +155,14 @@ export const useHome = () => {
         $autoCancel: false
       });
 
-      console.log('📊 Total de notas encontradas:', todasNotas.items.length);
-
+      
       // Agrupar por livro e calcular média
       const avaliacoesPorLivro = {};
       
       todasNotas.items.forEach(nota => {
         const livroId = nota.livro;
         if (!livroId) {
-          console.log('⚠️ Nota sem livroId:', nota);
+          console.log('Nota sem livroId:', nota);
           return;
         }
         
@@ -194,7 +193,7 @@ export const useHome = () => {
         .sort((a, b) => b.media - a.media)
         .slice(0, 3);
 
-      console.log('📈 Livros com média calculada:', livrosComMedia.length);
+   
 
       // Enriquecer com dados da API
       const livrosPopulares = await Promise.all(
@@ -222,7 +221,7 @@ export const useHome = () => {
   // Buscar listas mais populares (com mais livros)
   const buscarListasPopulares = async () => {
     try {
-      console.log('📋 Buscando listas populares...');
+   
       // Buscar todas as listas
       const todasListas = await $pb.collection('listas').getList(1, 50, {
         expand: 'autor',
@@ -230,7 +229,7 @@ export const useHome = () => {
         $autoCancel: false
       });
 
-      console.log('📚 Total de listas encontradas:', todasListas.items.length);
+     
 
       // Contar livros de cada lista (campo 'livros' é um array)
       const listasComContagem = todasListas.items.map(lista => ({
@@ -258,14 +257,14 @@ export const useHome = () => {
   // Buscar comunidades mais populares (com mais membros)
   const buscarComunidadesPopulares = async () => {
     try {
-      console.log('👥 Buscando comunidades populares...');
+    
       const comunidades = await $pb.collection('comunidade').getList(1, 50, {
         expand: 'lider',
         sort: '-created',
         $autoCancel: false
       });
 
-      console.log('🏘️ Total de comunidades encontradas:', comunidades.items.length);
+      
 
       // Ordenar por número de membros
       const comunidadesPopulares = comunidades.items
