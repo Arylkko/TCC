@@ -55,8 +55,7 @@ export const useComunidades = () => {
       console.error('Erro ao criar comunidade:', error);
       return { sucesso: false, erro: error.message };
     }
-  };
-  // Entrar na comunidade
+  };  // Entrar na comunidade
   const entrarNaComunidade = async (comunidadeId) => {
     try {
       const usuarioId = $pb.authStore.model?.id;
@@ -64,24 +63,32 @@ export const useComunidades = () => {
         return { sucesso: false, erro: 'Usuário não autenticado' };
       }
 
-      const comunidade = await $pb.collection('comunidade').getOne(comunidadeId);
+      
+
+      // Buscar a comunidade atual
+      const comunidade = await $pb.collection('comunidade').getOne(comunidadeId, {
+        $autoCancel: false
+      });
+
       
       if (comunidade.membros && comunidade.membros.includes(usuarioId)) {
         return { sucesso: false, erro: 'Você já é membro desta comunidade' };
       }
 
-      // PocketBase precisa receber relações múltiplas usando + ou -
-      // Usar + para adicionar sem remover os existentes
-      const novosMembros = [...(comunidade.membros || []), usuarioId];
-      
+      // Usar operador += para adicionar membro (sintaxe do PocketBase para relações)
       const atualizado = await $pb.collection('comunidade').update(comunidadeId, {
-        'membros': novosMembros
+        'membros+': usuarioId  // Usar += para adicionar sem remover os existentes
+      }, {
+        $autoCancel: false
       });
+
+ 
 
       return { sucesso: true, dados: atualizado };
     } catch (error) {
       console.error('Erro ao entrar na comunidade:', error);
       console.error('Detalhes do erro:', error.response?.data);
+      console.error('Status do erro:', error.status);
       return { sucesso: false, erro: error.message || 'Erro ao entrar na comunidade' };
     }
   };
@@ -143,10 +150,11 @@ export const useComunidades = () => {
   // Buscar comentários da comunidade
   const buscarComentarios = async (comunidadeId) => {
     try {
-      const comentarios = await $pb.collection('comentario').getList(1, 50, {
+      const comentarios = await $pb.collection('comentario').getList(1, 100, {
         filter: `comunidade = "${comunidadeId}"`,
         expand: 'autor',
-        sort: '-created'
+        sort: '-created',
+        $autoCancel: false
       });
       return { sucesso: true, dados: comentarios.items };
     } catch (error) {
@@ -154,9 +162,8 @@ export const useComunidades = () => {
       return { sucesso: false, erro: error.message };
     }
   };
-
   // Criar comentário
-  const criarComentario = async (comunidadeId, conteudo) => {
+  const criarComentario = async (comunidadeId, conteudo, spoiler = false) => {
     try {
       const usuarioId = $pb.authStore.model?.id;
       if (!usuarioId) {
@@ -166,7 +173,8 @@ export const useComunidades = () => {
       const comentario = await $pb.collection('comentario').create({
         conteudo,
         autor: usuarioId,
-        comunidade: comunidadeId
+        comunidade: comunidadeId,
+        spoiler: spoiler
       });
 
       return { sucesso: true, dados: comentario };

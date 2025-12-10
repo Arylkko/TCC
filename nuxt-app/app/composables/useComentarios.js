@@ -9,7 +9,7 @@ export const useComentarios = () => {
         filter: `livro = "${livroId}" && comentario_pai = ""`,
         expand: 'autor',
         sort: '-created',
-        requestKey: `comentarios_livro_${livroId}`
+        $autoCancel: false
       });
       return { sucesso: true, dados: comentarios.items };
     } catch (error) {
@@ -61,7 +61,7 @@ export const useComentarios = () => {
         filter: `livro = "${livroId}" && comentario_pai = ""`,
         expand: 'autor',
         sort: '-created',
-        requestKey: `comentarios_com_respostas_${livroId}`
+        $autoCancel: false
       });
 
       // Para cada comentário, busca suas respostas
@@ -71,7 +71,7 @@ export const useComentarios = () => {
             filter: `comentario_pai = "${comentario.id}"`,
             expand: 'autor',
             sort: 'created',
-            requestKey: `respostas_${comentario.id}`
+            $autoCancel: false
           });
           
           return {

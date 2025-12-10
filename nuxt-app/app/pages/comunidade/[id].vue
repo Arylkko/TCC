@@ -28,6 +28,8 @@ const livroSelecionado = ref(null);
 const comentarios = ref([]);
 const novoComentario = ref('');
 const enviandoComentario = ref(false);
+const comentarioTemSpoiler = ref(false);
+const comentariosRevelados = ref(new Set()); // IDs dos comentários revelados
 
 const {
   buscarComunidadePorId,
@@ -41,6 +43,7 @@ const {
 } = useComunidades();
 
 const { buscarDadosLivroAPI } = useLivros();
+const { toggleLikeComentario, usuarioDeulLikeComentario } = useLikes();
 
 const usuarioAtual = computed(() => $pb.authStore.model);
 const souLider = computed(() => ehLider(comunidade.value));
@@ -133,9 +136,16 @@ async function toggleMembership() {
       alert(resultado.erro);
     }
   } else {
+    console.log('Tentando entrar - ID da comunidade:', comunidadeId);
+    console.log('Usuário atual:', $pb.authStore.model);
+    
     const resultado = await entrarNaComunidade(comunidadeId);
+    
+    console.log('Resultado de entrar:', resultado);
+    
     if (resultado.sucesso) {
       await carregarComunidade();
+      alert('Você entrou na comunidade com sucesso!');
     } else {
       alert(resultado.erro);
     }
@@ -255,16 +265,46 @@ async function enviarComentario() {
   if (!novoComentario.value.trim()) return;
 
   enviandoComentario.value = true;
-  const resultado = await criarComentario(comunidadeId, novoComentario.value);
+  const resultado = await criarComentario(comunidadeId, novoComentario.value, comentarioTemSpoiler.value);
   
   if (resultado.sucesso) {
     novoComentario.value = '';
+    comentarioTemSpoiler.value = false;
     await carregarComentarios();
   } else {
     alert('Erro ao enviar comentário: ' + resultado.erro);
   }
   
   enviandoComentario.value = false;
+}
+
+// Toggle revelar/ocultar spoiler
+function toggleSpoiler(comentarioId) {
+  if (comentariosRevelados.value.has(comentarioId)) {
+    comentariosRevelados.value.delete(comentarioId);
+  } else {
+    comentariosRevelados.value.add(comentarioId);
+  }
+}
+
+// Verificar se comentário está revelado
+function comentarioRevelado(comentarioId) {
+  return comentariosRevelados.value.has(comentarioId);
+}
+
+// Likes
+async function darLikeComentario(comentarioId) {
+  if (!$pb.authStore.isValid) {
+    alert('Faça login para curtir');
+    return;
+  }
+
+  const resultado = await toggleLikeComentario(comentarioId);
+  if (resultado.sucesso) {
+    await carregarComentarios();
+  } else {
+    alert('Erro ao curtir: ' + resultado.erro);
+  }
 }
 
 function formatarData(data) {
@@ -365,29 +405,43 @@ onMounted(async () => {
                 class="bg-incipit-card text-texto font-display text-center rounded-[30px] justify-self-start px-15 shadow-lg"
               >
                 Comentários
-              </h2>
-
-            <!-- input -->
+              </h2>            <!-- input -->
             <div v-if="souMembro" class="bg-[#e6decf] rounded-[30px] p-4 shadow-sm flex gap-4 items-start mb-4">
                  <div class="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
                      <!-- Avatar user atual -->
                      <img v-if="getAvatarUsuario(usuarioAtual)" :src="getAvatarUsuario(usuarioAtual)" class="w-full h-full object-cover" />
                      <div v-else class="w-full h-full bg-roxo"></div>
                  </div>
-                 <div class="flex-1 relative">
+                 <div class="flex-1">
                      <textarea 
                         v-model="novoComentario"
                         placeholder="Escreva algo..." 
                         rows="2"
-                        class="w-full bg-incipit-fundo box-border rounded-xl p-3 border-none focus:ring-2 focus:ring-roxo outline-none resize-none text-sm"
+                        class="w-full bg-incipit-fundo box-border rounded-xl p-3 border-none focus:ring-2 focus:ring-roxo outline-none resize-none text-sm mb-2"
                      ></textarea>
-                     <button 
-                        @click="enviarComentario"
-                        :disabled="!novoComentario.trim() || enviandoComentario"
-                        class="absolute bottom-2 right-2 text-roxo border-0 hover:text-[#7a6a8f] disabled:opacity-50"
-                     >
-                        <div class="i-mdi:send text-xl"></div>
-                     </button>
+                     
+                     <!-- Checkbox de Spoiler -->
+                     <div class="flex items-center justify-between">
+                       <div class="flex items-center gap-2 ml-2">
+                         <input 
+                           type="checkbox" 
+                           id="comentario-spoiler-checkbox"
+                           v-model="comentarioTemSpoiler"
+                           class="w-4 h-4 text-roxo border-gray-300 rounded focus:ring-roxo cursor-pointer"
+                         />
+                         <label for="comentario-spoiler-checkbox" class="text-xs text-texto cursor-pointer">
+                           Este comentário contém spoilers
+                         </label>
+                       </div>
+                       
+                       <button 
+                          @click="enviarComentario"
+                          :disabled="!novoComentario.trim() || enviandoComentario"
+                          class="text-roxo border-0 hover:text-[#7a6a8f] disabled:opacity-50"
+                       >
+                          <div class="i-mdi:send text-xl"></div>
+                       </button>
+                     </div>
                  </div>
             </div>
 
@@ -423,29 +477,55 @@ onMounted(async () => {
                          <!-- Botão delete (apenas visual por enquanto ou se for dono) -->
                          <button v-if="comentario.autor === usuarioAtual?.id || souLider" class="absolute top-3 right-3 text-[#3d3131]/30 hover:text-red-500 transition">
                              <div class="i-mdi:close font-bold"></div>
-                         </button>
-
-                         <!-- Título/Conteúdo -->
+                         </button>                         <!-- Título/Conteúdo -->
                          <h4 class="font-bold text-[#3d3131] mb-1 text-sm">
                              {{ comentario.expand?.autor?.name || 'Membro' }} diz:
                          </h4>
-                         <p class="text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap">
+                         
+                         <!-- Conteúdo com/sem spoiler -->
+                         <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)" 
+                              @click.stop="toggleSpoiler(comentario.id)"
+                              class="cursor-pointer text-[#3d3131]/60 italic text-sm py-2 mb-4">
+                           <span class="hover:text-[#3d3131] transition">
+                             Este comentário contém spoilers. Clique para revelar.
+                           </span>
+                         </div>
+                         
+                         <p v-else
+                           @click.stop="comentario.spoiler ? toggleSpoiler(comentario.id) : null"
+                           :class="['text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap', 
+                                    comentario.spoiler && comentarioRevelado(comentario.id) ? 'cursor-pointer' : '']"
+                         >
                              {{ comentario.conteudo }}
-                         </p>
-
-                         <!-- Rodapé do Card -->
+                             <span v-if="comentario.spoiler && comentarioRevelado(comentario.id)" 
+                                   class="text-xs text-roxo/60 italic block mt-2">
+                               (Clique para ocultar)
+                             </span>
+                         </p>                         <!-- Rodapé do Card -->
                          <div class="flex justify-between items-center">
                              <div class="flex gap-4 text-roxo text-xs font-bold">
-                                 <div class="flex items-center gap-1">
-                                     <div class="i-mdi:heart"></div> 0
+                                 <div 
+                                   @click.stop="darLikeComentario(comentario.id)"
+                                   class="flex items-center gap-1 cursor-pointer hover:scale-110 transition"
+                                   :class="{ 'text-red-500': usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) }"
+                                 >
+                                   <div 
+                                     :class="[
+                                       'text-lg',
+                                       usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) 
+                                         ? 'i-mdi:heart' 
+                                         : 'i-mdi:heart-outline'
+                                     ]"
+                                   ></div>
+                                   <span>{{ comentario.likes?.length || 0 }}</span>
                                  </div>
                                  <div class="flex items-center gap-1">
                                      <div class="i-mdi:comment"></div> 0
                                  </div>
                              </div>
                              
-                             <div class="bg-roxo text-[#3d3131] px-3 py-1 rounded-full text-[10px] font-bold shadow-sm">
-                                 Sem spoilers
+                             <div class="bg-roxo text-branco px-3 py-1 rounded-full text-[10px] font-bold shadow-sm">
+                                 {{ comentario.spoiler ? 'COM spoilers' : 'SEM spoilers' }}
                              </div>
                          </div>
                     </div>
