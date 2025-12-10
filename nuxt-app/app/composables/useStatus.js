@@ -2,6 +2,7 @@
 export const useStatus = () => {
   const { $pb } = useNuxtApp();
   const { ganharXPLivroLido } = useXP();
+  const { verificarConquistaLeitorNato } = useConquistas();
 
   // Opções de status disponíveis
   const OPCOES_STATUS = [
@@ -39,8 +40,7 @@ export const useStatus = () => {
         const status = await $pb.collection('status').update(statusExistente.dados.id, {
           nome: nomeStatus
         });
-        
-        // Ganhar XP APENAS se estava em outro status e mudou para "Lido" pela PRIMEIRA VEZ
+          // Ganhar XP APENAS se estava em outro status e mudou para "Lido" pela PRIMEIRA VEZ
         // Verifica se o campo xp_lido_recebido não existe ou é false
         if (nomeStatus === 'Lido' && statusAnterior !== 'Lido' && !statusExistente.dados.xp_lido_recebido) {
           await ganharXPLivroLido(usuarioId);
@@ -49,6 +49,12 @@ export const useStatus = () => {
           await $pb.collection('status').update(statusExistente.dados.id, {
             xp_lido_recebido: true
           });
+          
+          // Verificar conquista "Leitor Nato"
+          const resultadoConquista = await verificarConquistaLeitorNato(usuarioId);
+          if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
+            return { sucesso: true, dados: status, atualizado: true, conquistaObtida: resultadoConquista.conquista };
+          }
         }
         
         return { sucesso: true, dados: status, atualizado: true };
@@ -60,10 +66,15 @@ export const useStatus = () => {
           livro: livroId,
           xp_lido_recebido: nomeStatus === 'Lido' // Marca como true se já criar como Lido
         });
-        
-        // Ganhar XP se criar como "Lido"
+          // Ganhar XP se criar como "Lido"
         if (nomeStatus === 'Lido') {
           await ganharXPLivroLido(usuarioId);
+          
+          // Verificar conquista "Leitor Nato"
+          const resultadoConquista = await verificarConquistaLeitorNato(usuarioId);
+          if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
+            return { sucesso: true, dados: status, atualizado: false, conquistaObtida: resultadoConquista.conquista };
+          }
         }
         
         return { sucesso: true, dados: status, atualizado: false };
