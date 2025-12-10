@@ -151,12 +151,11 @@ export const useComunidades = () => {
       return { sucesso: false, erro: error.message };
     }
   };
-
   // Buscar comentários da comunidade
   const buscarComentarios = async (comunidadeId) => {
     try {
       const comentarios = await $pb.collection('comentario').getList(1, 100, {
-        filter: `comunidade = "${comunidadeId}"`,
+        filter: `comunidade = "${comunidadeId}" && comentario_pai = ""`,
         expand: 'autor',
         sort: '-created',
         $autoCancel: false
