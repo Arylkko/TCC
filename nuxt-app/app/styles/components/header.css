@@ -342,7 +342,7 @@
 .search-input-livro {
   width: 100%;
   padding: 0.625rem 3rem 0.625rem 1rem;
-  border-radius: 100px 0px 0px 100px;
+  border-radius: 100px;
   background-color: #E4E4E4;
   color: #4E3939;
   border: none;
@@ -358,34 +358,11 @@
   box-shadow: 0 0 0 3px rgba(166, 141, 173, 0.3);
 }
 
-.search-button-livro {
-  background-color: #A68DAD;
-  color: #E4E4E4;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 1px 99px 99px 1px;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(166, 141, 173, 0.3);
-}
-
 .search-button-livro:hover {
   filter: brightness(1.1);
   transform: scale(1.05);
 }
 
-.search-button-livro:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.search-button-livro div {
-  font-size: 1.25rem;
-}
 
 .user-menu-livro {
   display: flex;
