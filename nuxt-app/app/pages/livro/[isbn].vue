@@ -305,8 +305,21 @@
                     </div>
 
                     <div class="flex items-center gap-1 ml-2">
-                      <div class="i-mdi:heart text-roxo text-lg"></div>
-                      <span class="text-texto/60 text-xs">likes</span>
+                      <div 
+                        @click.stop="darLikeNota(nota.id)"
+                        class="flex items-center gap-1 cursor-pointer hover:scale-110 transition"
+                        :class="{ 'text-red-500': usuarioDeulLikeNota(nota, $pb.authStore.model?.id) }"
+                      >
+                        <div 
+                          :class="[
+                            'text-lg',
+                            usuarioDeulLikeNota(nota, $pb.authStore.model?.id) 
+                              ? 'i-mdi:heart' 
+                              : 'i-mdi:heart-outline'
+                          ]"
+                        ></div>
+                        <span class="text-texto/60 text-xs">{{ nota.likes?.length || 0 }}</span>
+                      </div>
                     </div>
                   </div>
                   <button
@@ -380,9 +393,7 @@
                     >
                       {{ comentario.expand?.autor?.name || "User" }}
                     </span>
-                  </div>
-
-                  <div
+                  </div>                  <div
                     class="relative flex-1 bg-incipit-card rounded-[20px] p-5 shadow-sm min-w-0"
                   >
                     <div
@@ -390,10 +401,15 @@
                     ></div>
 
                     <button
-                      class="absolute top-3 right-3 text-[#3d3131]/30 hover:text-red-500 transition"
+                      v-if="comentario.expand?.autor?.id === $pb.authStore.model?.id"
+                      @click.stop="removerComentario(comentario.id, comentario.expand?.autor?.id)"
+                      class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border-0 cursor-pointer"
+                      title="Deletar comentário"
                     >
-                      <div class="i-mdi:close font-bold"></div>
-                    </button>                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
+                      <div class="i-mdi:close text-sm"></div>
+                    </button>
+
+                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
                       {{ comentario.expand?.autor?.name || "Leitor" }} diz:
                     </h4>
                     
@@ -420,15 +436,27 @@
 
                     <div class="flex justify-between items-center">
                       <div class="flex gap-4 text-roxo text-xs">
-                        <div class="flex items-center gap-1">
-                          <div class="i-mdi:heart text-roxo text-lg"></div>
-                          <span class="text-texto/60 text-xs">likes</span>
+                        <div 
+                          @click.stop="darLikeComentario(comentario.id)"
+                          class="flex items-center gap-1 cursor-pointer hover:scale-110 transition"
+                          :class="{ 'text-red-500': usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) }"
+                        >
+                          <div 
+                            :class="[
+                              'text-lg',
+                              usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) 
+                                ? 'i-mdi:heart' 
+                                : 'i-mdi:heart-outline'
+                            ]"
+                          ></div>
+                          <span class="text-texto/60 text-xs">{{ comentario.likes?.length || 0 }}</span>
                         </div>
 
                         <div class="flex items-center gap-1">
                             <div class="i-mdi:comment"></div>
                           comentários
-                        </div>                      </div>
+                        </div>
+                      </div>
 
                       <button
                         class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono text-xs"
@@ -505,10 +533,13 @@ const {
   atualizarMediaAvaliacoes,
 } = useNotas();
 const {
-  buscarComentariosComRespostas
+  buscarComentariosComRespostas,
+  deletarComentario
 } = useComentarios();
 const { OPCOES_STATUS, buscarStatus, definirStatus } = useStatus();
 const { buscarTagsLivro, adicionarOuCriarTag, removerTagDoLivro } = useTags();
+const { toggleLikeComentario, toggleLikeNota, usuarioDeulLikeComentario, usuarioDeulLikeNota } = useLikes();
+const { ganharXPAbrirLivro, ganharXPComentario, ganharXPResenha } = useXP();
 
 const isAuthenticated = computed(() => $pb.authStore.isValid);
 const isbn = computed(() => route.params.isbn);
@@ -535,6 +566,11 @@ function toggleDescricao() {
 // Load book data
 onMounted(async () => {
   await carregarDadosLivro();
+  
+  // Ganhar XP por abrir o livro (se autenticado)
+  if (isAuthenticated.value && $pb.authStore.model?.id) {
+    await ganharXPAbrirLivro($pb.authStore.model.id);
+  }
 });
 
 async function carregarDadosLivro() {
@@ -634,6 +670,10 @@ async function enviarComentario() {
       novoComentario.value = '';
       comentarioTemSpoiler.value = false;
       await carregarComentarios();
+      
+      // Ganhar XP por criar comentário
+      await ganharXPComentario($pb.authStore.model.id);
+      
       alert('Comentário publicado com sucesso!');
     }
   } catch (error) {
@@ -654,6 +694,26 @@ function toggleSpoiler(comentarioId) {
 // Verificar se comentário está revelado
 function comentarioRevelado(comentarioId) {
   return comentariosRevelados.value.has(comentarioId);
+}
+
+// Deletar comentário
+async function removerComentario(comentarioId, autorId) {
+  // Verificar se o usuário é o autor do comentário
+  if (autorId !== $pb.authStore.model?.id) {
+    alert('Você só pode deletar seus próprios comentários');
+    return;
+  }
+
+  if (!confirm('Tem certeza que deseja deletar este comentário?')) {
+    return;
+  }
+
+  const resultado = await deletarComentario(comentarioId);
+  if (resultado.sucesso) {
+    await carregarComentarios();
+  } else {
+    alert('Erro ao deletar comentário: ' + resultado.erro);
+  }
 }
 
 // Status
@@ -690,6 +750,11 @@ async function enviarAvaliacao() {
     resultado = await atualizarNota(minhaNotaExistente.value.id, dados);
   } else {
     resultado = await criarNota(dados);
+    
+    // Ganhar XP apenas ao criar nova resenha (não ao atualizar)
+    if (resultado.sucesso && resenhaTexto.value.trim()) {
+      await ganharXPResenha($pb.authStore.model.id);
+    }
   }
 
   if (resultado.sucesso) {
@@ -720,6 +785,35 @@ function toggleSpoilerResenha(resenhaId) {
 // Verificar se resenha está revelada
 function resenhaRevelada(resenhaId) {
   return resenhasReveladas.value.has(resenhaId);
+}
+
+// Likes
+async function darLikeComentario(comentarioId) {
+  if (!isAuthenticated.value) {
+    alert('Faça login para curtir');
+    return;
+  }
+
+  const resultado = await toggleLikeComentario(comentarioId);
+  if (resultado.sucesso) {
+    await carregarComentarios();
+  } else {
+    alert('Erro ao curtir: ' + resultado.erro);
+  }
+}
+
+async function darLikeNota(notaId) {
+  if (!isAuthenticated.value) {
+    alert('Faça login para curtir');
+    return;
+  }
+
+  const resultado = await toggleLikeNota(notaId);
+  if (resultado.sucesso) {
+    await carregarNotas();
+  } else {
+    alert('Erro ao curtir: ' + resultado.erro);
+  }
 }
 
 // Tags

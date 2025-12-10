@@ -68,12 +68,21 @@
 
           <div class="text-lg leading-relaxed text-texto/90 whitespace-pre-wrap break-all font-serif">
             {{ resenha.resenha }}
-          </div>
-
-          <div class="mt-10 pt-6 border-t border-texto/10 flex gap-4">
-            <div class="flex items-center gap-2 text-roxo">
-              <div class="i-mdi:heart text-xl"></div>
-              <span class="font-bold">{{ resenha.likes || 0 }}</span> Likes
+          </div>          <div class="mt-10 pt-6 border-t border-texto/10 flex gap-4">
+            <div 
+              @click="darLikeNota"
+              class="flex items-center gap-2 cursor-pointer hover:scale-110 transition"
+              :class="{ 'text-red-500': usuarioDeulLikeNota(resenha, $pb.authStore.model?.id) }"
+            >
+              <div 
+                :class="[
+                  'text-xl',
+                  usuarioDeulLikeNota(resenha, $pb.authStore.model?.id) 
+                    ? 'i-mdi:heart' 
+                    : 'i-mdi:heart-outline'
+                ]"
+              ></div>
+              <span class="font-bold">{{ resenha.likes?.length || 0 }}</span> Likes
             </div>
           </div>
 
@@ -86,10 +95,12 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import Header from "~/components/Header.vue";
-import { useNotas } from "~/composables/useNotas"; 
+import { useNotas } from "~/composables/useNotas";
+import { useLikes } from "~/composables/useLikes";
 
 const route = useRoute();
 const { buscarNotaPorId } = useNotas();
+const { toggleLikeNota, usuarioDeulLikeNota } = useLikes();
 const { $pb } = useNuxtApp();
 
 const loading = ref(true);
@@ -98,12 +109,10 @@ const resenha = ref(null);
 
 const resenhaId = computed(() => route.params.id);
 
-onMounted(async () => {
-  loading.value = true;
-  
+// Função para carregar a resenha
+async function carregarResenha() {
   if (!resenhaId.value) {
     error.value = "ID da resenha não encontrado.";
-    loading.value = false;
     return;
   }
 
@@ -114,9 +123,28 @@ onMounted(async () => {
   } else {
     error.value = "Não foi possível encontrar esta resenha.";
   }
-  
+}
+
+onMounted(async () => {
+  loading.value = true;
+  await carregarResenha();
   loading.value = false;
 });
+
+// Função para dar like
+async function darLikeNota() {
+  if (!$pb.authStore.isValid) {
+    alert('Faça login para curtir');
+    return;
+  }
+
+  const resultado = await toggleLikeNota(resenhaId.value);
+  if (resultado.sucesso) {
+    await carregarResenha();
+  } else {
+    alert('Erro ao curtir: ' + resultado.erro);
+  }
+}
 
 function formatarData(dataString) {
   if (!dataString) return "";

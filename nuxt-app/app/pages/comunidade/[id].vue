@@ -44,6 +44,7 @@ const {
 
 const { buscarDadosLivroAPI } = useLivros();
 const { toggleLikeComentario, usuarioDeulLikeComentario } = useLikes();
+const { deletarComentario } = useComentarios();
 
 const usuarioAtual = computed(() => $pb.authStore.model);
 const souLider = computed(() => ehLider(comunidade.value));
@@ -307,6 +308,26 @@ async function darLikeComentario(comentarioId) {
   }
 }
 
+// Deletar comentário
+async function removerComentario(comentarioId, autorId) {
+  // Verificar se o usuário é o autor do comentário ou líder da comunidade
+  if (autorId !== $pb.authStore.model?.id && !souLider.value) {
+    alert('Você só pode deletar seus próprios comentários');
+    return;
+  }
+
+  if (!confirm('Tem certeza que deseja deletar este comentário?')) {
+    return;
+  }
+
+  const resultado = await deletarComentario(comentarioId);
+  if (resultado.sucesso) {
+    await carregarComentarios();
+  } else {
+    alert('Erro ao deletar comentário: ' + resultado.erro);
+  }
+}
+
 function formatarData(data) {
   if (!data) return '';
   return new Date(data).toLocaleDateString('pt-BR');
@@ -467,17 +488,22 @@ onMounted(async () => {
                         <span class="text-[10px] font-bold text-center leading-tight truncate w-full">
                             {{ comentario.expand?.autor?.username || 'User' }}
                         </span>
-                    </div>
-
-                    <!-- Balão de Fala -->
+                    </div>                     <!-- Balão de Fala -->
                     <div class="relative flex-1 bg-incipit-card rounded-[20px] p-5 shadow-sm min-w-0">
                          <!-- Triângulo do balão -->
                          <div class="absolute top-6 -left-2 w-4 h-4 bg-incipit-card transform rotate-45"></div>
                          
-                         <!-- Botão delete (apenas visual por enquanto ou se for dono) -->
-                         <button v-if="comentario.autor === usuarioAtual?.id || souLider" class="absolute top-3 right-3 text-[#3d3131]/30 hover:text-red-500 transition">
-                             <div class="i-mdi:close font-bold"></div>
-                         </button>                         <!-- Título/Conteúdo -->
+                         <!-- Botão deletar (apenas para autor ou líder) -->
+                         <button 
+                           v-if="comentario.expand?.autor?.id === $pb.authStore.model?.id || souLider"
+                           @click.stop="removerComentario(comentario.id, comentario.expand?.autor?.id)"
+                           class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border-0 cursor-pointer"
+                           title="Deletar comentário"
+                         >
+                           <div class="i-mdi:close text-sm"></div>
+                         </button>
+                         
+                         <!-- Título/Conteúdo -->
                          <h4 class="font-bold text-[#3d3131] mb-1 text-sm">
                              {{ comentario.expand?.autor?.name || 'Membro' }} diz:
                          </h4>
