@@ -377,7 +377,7 @@
                 <div
                   v-for="comentario in comentarios"
                   :key="comentario.id"
-                  class="comment-item flex items-start gap-4"
+                  class="comment-item flex items-start gap-4 cursor-pointer"
                   @click="ExpandirComentario(comentario)"
                 >
                   <div class="flex flex-col items-center gap-1 flex-shrink-0 w-16">

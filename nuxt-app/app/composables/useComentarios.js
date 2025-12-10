@@ -1,13 +1,14 @@
-// Composable para gerenciar comentários e respostas
+// composables/useComentarios.js
+
 export const useComentarios = () => {
   const { $pb } = useNuxtApp();
-  const { ganharXPReceberComentario } = useXP();
+  const { ganharXPReceberComentario } = useXP(); 
 
   // Busca todos os comentários de um livro (apenas comentários principais, sem respostas)
   const buscarComentariosLivro = async (livroId) => {
     try {
       const comentarios = await $pb.collection('comentario').getList(1, 50, {
-        filter: `livro = "${livroId}" && comentario_pai = ""`,
+        filter: `livro = "${livroId}" && comentario_pai = null`,
         expand: 'autor',
         sort: '-created',
         $autoCancel: false
@@ -26,21 +27,20 @@ export const useComentarios = () => {
   // Busca um comentário específico com suas respostas
   const buscarComentarioPorId = async (comentarioId) => {
     try {
-      // Busca o comentário principal
+      // Inclui 'comunidade' no expand
       const comentario = await $pb.collection('comentario').getOne(comentarioId, {
-        expand: 'autor,livro',
+        expand: 'autor,livro,comunidade', 
         requestKey: `comentario_${comentarioId}`
       });
 
       // Busca as respostas deste comentário
       const respostas = await $pb.collection('comentario').getList(1, 50, {
         filter: `comentario_pai = "${comentarioId}"`,
-        expand: 'autor',
-        sort: '-created',
+        expand: 'autor', 
+        sort: 'created',
         requestKey: `respostas_${comentarioId}`
       });
 
-      // Adiciona as respostas ao comentário
       comentario.respostas = respostas.items;
 
       return { sucesso: true, dados: comentario };
@@ -54,18 +54,19 @@ export const useComentarios = () => {
     }
   };
 
-  // Busca comentários com suas respostas (para página do livro)
-  const buscarComentariosComRespostas = async (livroId) => {
+  // Busca comentários com suas respostas (para listagem de tópicos principais)
+  const buscarComentariosComRespostas = async (origemId, tipoOrigem = 'livro') => {
     try {
-      // Busca comentários principais
+      const filterField = tipoOrigem === 'livro' ? 'livro' : 'comunidade';
+      
+      // Filtra APENAS COMENTÁRIOS PRINCIPAIS (sem pai)
       const comentarios = await $pb.collection('comentario').getList(1, 50, {
-        filter: `livro = "${livroId}" && comentario_pai = ""`,
+        filter: `${filterField} = "${origemId}" && comentario_pai = null`, // null ao invés de ""
         expand: 'autor',
         sort: '-created',
         $autoCancel: false
       });
 
-      // Para cada comentário, busca suas respostas
       const comentariosComRespostas = await Promise.all(
         comentarios.items.map(async (comentario) => {
           const respostas = await $pb.collection('comentario').getList(1, 50, {
@@ -85,7 +86,7 @@ export const useComentarios = () => {
       return { sucesso: true, dados: comentariosComRespostas };
     } catch (error) {
       if (error.isAbort) {
-        console.log('Requisição cancelada (normal):', livroId);
+        console.log('Requisição cancelada (normal):', origemId);
         return { sucesso: true, dados: [] };
       }
       console.error('Erro ao buscar comentários com respostas:', error);
@@ -93,7 +94,7 @@ export const useComentarios = () => {
     }
   };
 
-  // Cria um novo comentário
+  // Cria um novo comentário (para o comentário principal)
   const criarComentario = async (dados) => {
     try {
       const novoComentario = await $pb.collection('comentario').create(dados);
@@ -105,30 +106,55 @@ export const useComentarios = () => {
   };
 
   // Responde a um comentário (cria um comentário filho)
-  const responderComentario = async (comentarioPaiId, livroId, conteudo, autorId) => {
+  const responderComentario = async (comentarioPaiId, origemId, conteudo, autorId, tipoOrigem) => {
     try {
-      const resposta = await $pb.collection('comentario').create({
-        livro: livroId,
+      // Estrutura base do comentário
+      const dadosCriacao = {
         autor: autorId,
         conteudo: conteudo,
+        spoiler: false, 
         comentario_pai: comentarioPaiId,
         likes: []
-      });
+      };
+
+      // Define o campo de origem correto (livro ou comunidade)
+      if (tipoOrigem === 'livro') {
+        dadosCriacao.livro = origemId;
+        // Garante que comunidade está vazio/null
+        dadosCriacao.comunidade = "";
+      } else if (tipoOrigem === 'comunidade') {
+        dadosCriacao.comunidade = origemId;
+        // Garante que livro está vazio/null
+        dadosCriacao.livro = "";
+      } else {
+        throw new Error("Tipo de origem inválido: deve ser 'livro' ou 'comunidade'.");
+      }
+
+      console.log('Dados que serão enviados:', dadosCriacao);
+
+      const resposta = await $pb.collection('comentario').create(dadosCriacao);
       
-      // Buscar autor do comentário pai para dar XP
-      const comentarioPai = await $pb.collection('comentario').getOne(comentarioPaiId, {
-        fields: 'autor'
-      });
-      
-      // Dar XP ao autor do comentário pai (se não for ele mesmo respondendo)
-      if (comentarioPai.autor && comentarioPai.autor !== autorId) {
-        await ganharXPReceberComentario(comentarioPai.autor);
+      // Lógica de XP
+      try {
+        const comentarioPai = await $pb.collection('comentario').getOne(comentarioPaiId, {
+          fields: 'autor'
+        });
+        
+        if (comentarioPai.autor && comentarioPai.autor !== autorId) {
+          await ganharXPReceberComentario(comentarioPai.autor);
+        }
+      } catch (xpError) {
+        console.warn('Erro ao processar XP, mas comentário foi criado:', xpError);
       }
       
       return { sucesso: true, dados: resposta };
     } catch (error) {
       console.error('Erro ao responder comentário:', error);
-      return { sucesso: false, erro: error.message || 'Erro ao responder comentário' };
+      console.error('Detalhes do erro:', error.data);
+      return { 
+        sucesso: false, 
+        erro: error.data?.data ? JSON.stringify(error.data.data) : error.message || 'Erro ao responder comentário' 
+      };
     }
   };
 
