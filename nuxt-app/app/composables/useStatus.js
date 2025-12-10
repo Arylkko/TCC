@@ -26,7 +26,6 @@ export const useStatus = () => {
       return { sucesso: false, erro: error.message || 'Erro ao buscar status' };
     }
   };
-
   // Define ou atualiza o status de leitura
   const definirStatus = async (livroId, usuarioId, nomeStatus) => {
     try {
@@ -34,14 +33,22 @@ export const useStatus = () => {
       const statusExistente = await buscarStatus(livroId, usuarioId);
 
       if (statusExistente.sucesso) {
+        const statusAnterior = statusExistente.dados.nome;
+        
         // Atualiza o status existente
         const status = await $pb.collection('status').update(statusExistente.dados.id, {
           nome: nomeStatus
         });
         
-        // Ganhar XP se marcar como "Lido"
-        if (nomeStatus === 'Lido') {
+        // Ganhar XP APENAS se estava em outro status e mudou para "Lido" pela PRIMEIRA VEZ
+        // Verifica se o campo xp_lido_recebido não existe ou é false
+        if (nomeStatus === 'Lido' && statusAnterior !== 'Lido' && !statusExistente.dados.xp_lido_recebido) {
           await ganharXPLivroLido(usuarioId);
+          
+          // Marca que o XP já foi recebido
+          await $pb.collection('status').update(statusExistente.dados.id, {
+            xp_lido_recebido: true
+          });
         }
         
         return { sucesso: true, dados: status, atualizado: true };
@@ -50,10 +57,11 @@ export const useStatus = () => {
         const status = await $pb.collection('status').create({
           nome: nomeStatus,
           usuario: usuarioId,
-          livro: livroId
+          livro: livroId,
+          xp_lido_recebido: nomeStatus === 'Lido' // Marca como true se já criar como Lido
         });
         
-        // Ganhar XP se marcar como "Lido"
+        // Ganhar XP se criar como "Lido"
         if (nomeStatus === 'Lido') {
           await ganharXPLivroLido(usuarioId);
         }
