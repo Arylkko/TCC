@@ -43,14 +43,12 @@ onMounted(() => {
           <h2 class="text-3xl text-texto mb-4">
             <span class="font-bold">{{ comunidades.length }}</span>
             <span class="font-normal"> {{ comunidades.length === 1 ? ' comunidade encontrada' : ' comunidades encontradas' }}</span>
-          </h2>
-
-          <!-- Filtros superiores -->
+          </h2>          <!-- Filtros superiores -->
           <div class="flex items-center justify-center gap-3 mb-3">
             <span class="text-texto text-sm">Pesquisar por:</span>
             <button
               class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
-              @click="searchType = 'livros'"
+              @click="router.push('/search')"
             >
               Livros
             </button>

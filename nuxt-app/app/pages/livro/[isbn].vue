@@ -120,14 +120,16 @@
             <p class="text-center text-texto/60 text-sm mb-6">
               {{ livro.TotalAvaliacoes || 0 }}
               {{ livro.TotalAvaliacoes === 1 ? "avaliação" : "avaliações" }}
-            </p>
-            <div class="mb-6">
+            </p>            <div class="mb-6">
               <div v-for="n in 5" :key="n" class="flex items-center gap-2 mb-2">
                 <span class="text-sm text-texto/70 w-8">{{ 6 - n }}★</span>
                 <div class="flex-1 h-6 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    class="h-full bg-incipit-roxo transition-all"
-                    :style="{ width: calcularDistribuicao(6 - n) + '%' }"
+                    class="h-full transition-all duration-300"
+                    :style="{ 
+                      width: calcularDistribuicao(6 - n) + '%',
+                      backgroundColor: '#a68dad'
+                    }"
                   ></div>
                 </div>
               </div>
@@ -220,6 +222,19 @@
                 rows="5"
               ></textarea>
 
+              <!-- Checkbox de Spoiler -->
+              <div class="flex items-center gap-2 mb-3 ml-2">
+                <input 
+                  type="checkbox" 
+                  id="resenha-spoiler-checkbox"
+                  v-model="resenhaTemSpoiler"
+                  class="w-4 h-4 text-roxo border-gray-300 rounded focus:ring-roxo cursor-pointer"
+                />
+                <label for="resenha-spoiler-checkbox" class="text-sm text-texto cursor-pointer font-sono">
+                  Esta resenha contém spoilers
+                </label>
+              </div>
+
               <button
                 @click="enviarAvaliacao"
                 :disabled="avaliacaoNova === 0"
@@ -253,8 +268,26 @@
                     </div>
                   </div>
 
-                  <div v-if="nota.resenha" class="review-text break-all line-clamp-2">
-                    {{ nota.resenha }}
+                  <!-- Conteúdo da resenha com/sem spoiler -->
+                  <div v-if="nota.resenha">
+                    <div v-if="nota.spoiler && !resenhaRevelada(nota.id)" 
+                         @click.stop="toggleSpoilerResenha(nota.id)"
+                         class="cursor-pointer text-[#3d3131]/60 italic text-sm py-2">
+                      <span class="hover:text-[#3d3131] transition">
+                        Esta resenha contém spoilers. Clique para revelar.
+                      </span>
+                    </div>
+                    
+                    <div v-else
+                         @click.stop="nota.spoiler ? toggleSpoilerResenha(nota.id) : null"
+                         :class="['review-text break-all line-clamp-2', 
+                                  nota.spoiler && resenhaRevelada(nota.id) ? 'cursor-pointer' : '']">
+                      {{ nota.resenha }}
+                      <span v-if="nota.spoiler && resenhaRevelada(nota.id)" 
+                            class="text-xs text-roxo/60 italic block mt-2">
+                        (Clique para ocultar)
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -277,9 +310,9 @@
                     </div>
                   </div>
                   <button
-                    class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono"
+                    class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono text-xs"
                   >
-                    S/C spoilers
+                    {{ nota.spoiler ? 'COM spoilers' : 'SEM spoilers' }}
                   </button>
                 </div>
               </div>
@@ -297,15 +330,27 @@
               >
                 Comentários
                 <span class="count">({{ comentarios.length }})</span>
-              </h2>
-
-              <div v-if="isAuthenticated" class="add-comment">
+              </h2>              <div v-if="isAuthenticated" class="add-comment">
                 <textarea
                   v-model="novoComentario"
                   placeholder="Escreva um comentário..."
                   class="comment-textarea"
                   rows="3"
                 ></textarea>
+                
+                <!-- Checkbox de Spoiler -->
+                <div class="flex items-center gap-2 mb-3 ml-2">
+                  <input 
+                    type="checkbox" 
+                    id="spoiler-checkbox"
+                    v-model="comentarioTemSpoiler"
+                    class="w-4 h-4 text-roxo border-gray-300 rounded focus:ring-roxo"
+                  />
+                  <label for="spoiler-checkbox" class="text-sm text-texto cursor-pointer">
+                     Este comentário contém spoilers
+                  </label>
+                </div>
+                
                 <button
                   @click="enviarComentario"
                   :disabled="!novoComentario.trim()"
@@ -348,15 +393,29 @@
                       class="absolute top-3 right-3 text-[#3d3131]/30 hover:text-red-500 transition"
                     >
                       <div class="i-mdi:close font-bold"></div>
-                    </button>
-
-                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
+                    </button>                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
                       {{ comentario.expand?.autor?.name || "Leitor" }} diz:
                     </h4>
-                    <p
-                      class="text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap"
+                    
+                    <!-- Conteúdo com/sem spoiler -->
+                    <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)" 
+                         @click.stop="toggleSpoiler(comentario.id)"
+                         class="cursor-pointer text-[#3d3131]/60 italic text-sm py-2 mb-4">
+                      <span class="hover:text-[#3d3131] transition">
+                        Este comentário contém spoilers. Clique para revelar.
+                      </span>
+                    </div>
+                    
+                    <p v-else
+                      @click.stop="comentario.spoiler ? toggleSpoiler(comentario.id) : null"
+                      :class="['text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap', 
+                               comentario.spoiler && comentarioRevelado(comentario.id) ? 'cursor-pointer' : '']"
                     >
                       {{ comentario.conteudo }}
+                      <span v-if="comentario.spoiler && comentarioRevelado(comentario.id)" 
+                            class="text-xs text-roxo/60 italic block mt-2">
+                        (Clique para ocultar)
+                      </span>
                     </p>
 
                     <div class="flex justify-between items-center">
@@ -369,13 +428,12 @@
                         <div class="flex items-center gap-1">
                             <div class="i-mdi:comment"></div>
                           comentários
-                        </div>
-                      </div>
+                        </div>                      </div>
 
                       <button
-                        class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono"
+                        class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono text-xs"
                       >
-                        S/C spoilers
+                        {{ comentario.spoiler ? 'COM spoilers' : 'SEM spoilers' }}
                       </button>
                     </div>
                   </div>
@@ -419,10 +477,13 @@ const statusAtual = ref("");
 const avaliacaoNova = ref(0);
 const resenhaTexto = ref("");
 const minhaNotaExistente = ref(null);
+const resenhaTemSpoiler = ref(false);
+const resenhasReveladas = ref(new Set()); // IDs das resenhas reveladas
 
 // Comments
 const novoComentario = ref("");
-
+const comentarioTemSpoiler = ref(false);
+const comentariosRevelados = ref(new Set());  
 // Tags
 const mostrarInputTag = ref(false);
 const novaTag = ref("");
@@ -563,13 +624,15 @@ async function enviarComentario() {
     const dados = {
       conteudo: novoComentario.value.trim(),
       autor: $pb.authStore.model.id,
-      livro: livro.value.id
+      livro: livro.value.id,
+      spoiler: comentarioTemSpoiler.value
     };
 
     const resultado = await $pb.collection('comentario').create(dados);
 
     if (resultado) {
       novoComentario.value = '';
+      comentarioTemSpoiler.value = false;
       await carregarComentarios();
       alert('Comentário publicado com sucesso!');
     }
@@ -577,6 +640,20 @@ async function enviarComentario() {
     console.error('Erro ao enviar comentário:', error);
     alert('Erro ao publicar comentário: ' + error.message);
   }
+}
+
+// Toggle revelar/ocultar spoiler
+function toggleSpoiler(comentarioId) {
+  if (comentariosRevelados.value.has(comentarioId)) {
+    comentariosRevelados.value.delete(comentarioId);
+  } else {
+    comentariosRevelados.value.add(comentarioId);
+  }
+}
+
+// Verificar se comentário está revelado
+function comentarioRevelado(comentarioId) {
+  return comentariosRevelados.value.has(comentarioId);
 }
 
 // Status
@@ -605,6 +682,7 @@ async function enviarAvaliacao() {
     autor: $pb.authStore.model.id,
     avaliacao: avaliacaoNova.value,
     resenha: resenhaTexto.value.trim(),
+    spoiler: resenhaTemSpoiler.value
   };
 
   let resultado;
@@ -620,11 +698,28 @@ async function enviarAvaliacao() {
 
     // Recarrega dados
     await carregarDadosLivro();
+    
+    // Limpar campos
+    resenhaTemSpoiler.value = false;
 
     alert(minhaNotaExistente.value ? "Avaliação atualizada!" : "Avaliação publicada!");
   } else {
     alert("Erro ao enviar avaliação: " + resultado.erro);
   }
+}
+
+// Toggle revelar/ocultar spoiler da resenha
+function toggleSpoilerResenha(resenhaId) {
+  if (resenhasReveladas.value.has(resenhaId)) {
+    resenhasReveladas.value.delete(resenhaId);
+  } else {
+    resenhasReveladas.value.add(resenhaId);
+  }
+}
+
+// Verificar se resenha está revelada
+function resenhaRevelada(resenhaId) {
+  return resenhasReveladas.value.has(resenhaId);
 }
 
 // Tags
@@ -679,13 +774,13 @@ function formatarData(data) {
 }
 
 function calcularDistribuicao(estrelas) {
-  if (notas.value.length === 0) return 0;
-  const count = notas.value.filter((n) => Math.round(n.avaliacao) === estrelas).length;
+  if (!notas.value || notas.value.length === 0) return 0;
+  const count = notas.value.filter((n) => n.avaliacao === estrelas).length;
   return (count / notas.value.length) * 100;
 }
 
 function ExpandirResenha(nota) {
-  console.log(nota.id);
+
   if (nota.id) {
     navigateTo(`/nota/${nota.id}`);
   } else {
@@ -694,7 +789,7 @@ function ExpandirResenha(nota) {
 }
 
 function ExpandirComentario(comentario) {
-  console.log(comentario.id);
+
   if (comentario.id) {
     navigateTo(`/comentario/c${comentario.id}`);
   } else {

@@ -1,4 +1,4 @@
-    <template>
+<template>
     <div class="min-h-screen bg-incipit-fundo font-sono text-texto pb-10">
         <Header :show-search="true" />
 
@@ -85,12 +85,21 @@
                 class="text-lg leading-relaxed text-texto/90 whitespace-pre-wrap break-all font-serif"
             >
                 {{ comentario.conteudo }}
-            </div>
-
-            <div class="mt-10 pt-6 border-t border-texto/10 flex gap-4">
-                <div class="flex items-center gap-2 text-roxo">
-                <div class="i-mdi:heart text-xl"></div>
-                <span class="font-bold">{{ comentario.likes || 0 }}</span> Likes
+            </div>            <div class="mt-10 pt-6 border-t border-texto/10 flex gap-4">
+                <div 
+                  @click="darLikeComentario"
+                  class="flex items-center gap-2 cursor-pointer hover:scale-110 transition"
+                  :class="{ 'text-red-500': usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) }"
+                >
+                  <div 
+                    :class="[
+                      'text-xl',
+                      usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) 
+                        ? 'i-mdi:heart' 
+                        : 'i-mdi:heart-outline'
+                    ]"
+                  ></div>
+                  <span class="font-bold">{{ comentario.likes?.length || 0 }}</span> Likes
                 </div>
 
                 <div class="flex items-center gap-1 text-roxo cursor-pointer" @click="iniciarResposta(comentario.id)">
@@ -165,12 +174,14 @@
 
     <script setup>
     import { ref, onMounted, computed } from "vue";
-    import { useRoute } from "vue-router"; // Importação essencial
+    import { useRoute } from "vue-router";
     import Header from "~/components/Header.vue";
     import { useComentarios } from "~/composables/useComentarios";
+    import { useLikes } from "~/composables/useLikes";
 
     const route = useRoute();
     const { buscarComentarioPorId, responderComentario } = useComentarios();
+    const { toggleLikeComentario, usuarioDeulLikeComentario } = useLikes();
     const { $pb } = useNuxtApp();
 
     // Estados
@@ -253,5 +264,20 @@
     } else {
         alert("Erro ao enviar resposta: " + resultado.erro);
     }
+    }
+
+    // Likes
+    async function darLikeComentario() {
+      if (!$pb.authStore.isValid) {
+        alert('Faça login para curtir');
+        return;
+      }
+
+      const resultado = await toggleLikeComentario(comentarioId.value);
+      if (resultado.sucesso) {
+        await carregarDadosComentario();
+      } else {
+        alert('Erro ao curtir: ' + resultado.erro);
+      }
     }
     </script>

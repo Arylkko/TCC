@@ -31,7 +31,7 @@ export const useHome = () => {
         $autoCancel: false
       });
 
-      console.log('📚 Status lendo encontrados:', statusLendo.items.length);
+      
 
       // ✅ OTIMIZAÇÃO: Promise.all ao invés de loop com await
       const livrosComDados = await Promise.all(
@@ -65,14 +65,14 @@ export const useHome = () => {
   // Buscar gêneros dos livros que o usuário já leu ou está lendo
   const buscarGenerosUsuario = async (userId) => {
     try {
-      console.log('🎨 Buscando gêneros do usuário:', userId);
+      
       const statusLidos = await $pb.collection('status').getList(1, 50, {
         filter: `usuario = "${userId}" && (nome = "Lido" || nome = "Lendo")`,
         expand: 'livro',
         $autoCancel: false
       });
 
-      console.log('📚 Livros lidos/lendo encontrados:', statusLidos.items.length);
+ 
 
       // ✅ OTIMIZAÇÃO: Buscar todos os ISBNs em paralelo
       const livrosComISBN = statusLidos.items
@@ -94,7 +94,7 @@ export const useHome = () => {
         }
       });
 
-      console.log('✅ Gêneros finais:', Array.from(generos));
+    
       return Array.from(generos);
     } catch (error) {
       console.error('Erro ao buscar gêneros:', error);
@@ -309,7 +309,7 @@ export const useHome = () => {
         $autoCancel: false
       });
 
-      console.log('🏘️ Total de comunidades encontradas:', comunidades.items.length);
+      
 
       const comunidadesPopulares = comunidades.items
         .map(comunidade => ({
