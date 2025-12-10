@@ -257,6 +257,14 @@ async function selecionarLivro(livro) {
   }
 }
 
+function ExpandirComentario(comentario) {
+
+  if (comentario.id) {
+    navigateTo(`/comentario/c${comentario.id}`);
+  } else {
+    alert("Comentário não encontrada.");
+  }
+}
 // Limpar seleção
 function limparSelecao() {
   livroSelecionado.value = null;
@@ -358,7 +366,7 @@ onMounted(async () => {
     <main v-else-if="comunidade" class="container mx-auto px-4 max-w-[1400px]">
       
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"> 
         
         <!-- col 1  -->
         <div class="lg:col-span-3 flex flex-col">
@@ -472,91 +480,97 @@ onMounted(async () => {
                     Nenhum comentário ainda.
                 </div>
 
-                <div v-for="comentario in comentarios" :key="comentario.id" class="flex gap-4 group">
+                <div v-for="comentario in comentarios" :key="comentario.id" class="flex gap-4 group" @click="ExpandirComentario(comentario)">
                     <!-- Avatar Lateral -->
                     <div class="flex flex-col items-center gap-1 flex-shrink-0 w-16">
-                        <div class="w-12 h-12 rounded-full border-2 border-roxo overflow-hidden bg-white">
-                            <img 
+                    <div
+                      class="w-15 h-15 rounded-full border-2 border-roxo overflow-hidden bg-roxo"
+                    >
+           <img 
                                 v-if="getAvatarUsuario(comentario.expand?.autor)" 
                                 :src="getAvatarUsuario(comentario.expand?.autor)" 
-                                class="w-full h-full object-cover" 
+                                class="w-full h-full object-cover " 
                             />
-                            <div v-else class="w-full h-full flex items-center justify-center bg-gray-200">
-                                <div class="i-mdi:account text-gray-400"></div>
-                            </div>
-                        </div>
-                        <span class="text-[10px] font-bold text-center leading-tight truncate w-full">
-                            {{ comentario.expand?.autor?.username || 'User' }}
-                        </span>
-                    </div>                     <!-- Balão de Fala -->
-                    <div class="relative flex-1 bg-incipit-card rounded-[20px] p-5 shadow-sm min-w-0">
-                         <!-- Triângulo do balão -->
-                         <div class="absolute top-6 -left-2 w-4 h-4 bg-incipit-card transform rotate-45"></div>
-                         
-                         <!-- Botão deletar (apenas para autor ou líder) -->
-                         <button 
-                           v-if="comentario.expand?.autor?.id === $pb.authStore.model?.id || souLider"
-                           @click.stop="removerComentario(comentario.id, comentario.expand?.autor?.id)"
-                           class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border-0 cursor-pointer"
-                           title="Deletar comentário"
-                         >
-                           <div class="i-mdi:close text-sm"></div>
-                         </button>
-                         
-                         <!-- Título/Conteúdo -->
-                         <h4 class="font-bold text-[#3d3131] mb-1 text-sm">
-                             {{ comentario.expand?.autor?.name || 'Membro' }} diz:
-                         </h4>
-                         
-                         <!-- Conteúdo com/sem spoiler -->
-                         <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)" 
-                              @click.stop="toggleSpoiler(comentario.id)"
-                              class="cursor-pointer text-[#3d3131]/60 italic text-sm py-2 mb-4">
-                           <span class="hover:text-[#3d3131] transition">
-                             Este comentário contém spoilers. Clique para revelar.
-                           </span>
-                         </div>
-                         
-                         <p v-else
-                           @click.stop="comentario.spoiler ? toggleSpoiler(comentario.id) : null"
-                           :class="['text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap', 
-                                    comentario.spoiler && comentarioRevelado(comentario.id) ? 'cursor-pointer' : '']"
-                         >
-                             {{ comentario.conteudo }}
-                             <span v-if="comentario.spoiler && comentarioRevelado(comentario.id)" 
-                                   class="text-xs text-roxo/60 italic block mt-2">
-                               (Clique para ocultar)
-                             </span>
-                         </p>                         <!-- Rodapé do Card -->
-                         <div class="flex justify-between items-center">
-                             <div class="flex gap-4 text-roxo text-xs font-bold">
-                                 <div 
-                                   @click.stop="darLikeComentario(comentario.id)"
-                                   class="flex items-center gap-1 cursor-pointer hover:scale-110 transition"
-                                   :class="{ 'text-red-500': usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) }"
-                                 >
-                                   <div 
-                                     :class="[
-                                       'text-lg',
-                                       usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) 
-                                         ? 'i-mdi:heart' 
-                                         : 'i-mdi:heart-outline'
-                                     ]"
-                                   ></div>
-                                   <span>{{ comentario.likes?.length || 0 }}</span>
-                                 </div>
-                                 <div class="flex items-center gap-1">
-                                     <div class="i-mdi:comment"></div> 0
-                                 </div>
-                             </div>
-                             
-                             <div class="bg-roxo text-branco px-3 py-1 rounded-full text-[10px] font-bold shadow-sm">
-                                 {{ comentario.spoiler ? 'COM spoilers' : 'SEM spoilers' }}
-                             </div>
-                         </div>
                     </div>
+                    <span
+                      class="font-display mt-2 text-texto text-center leading-tight truncate w-full"
+                    >
+                      {{ comentario.expand?.autor?.name || "User" }}
+                    </span>
+                  </div>                  <div
+                    class="relative flex-1 bg-incipit-card rounded-[20px] p-5 shadow-sm min-w-0 cursor-pointer"
+                  >
+                    <div
+                      class="absolute top-6 -left-2 w-4 h-4 bg-incipit-card transform rotate-45"
+                    ></div>
+
+                    <button
+                      v-if="comentario.expand?.autor?.id === $pb.authStore.model?.id"
+                      @click.stop="removerComentario(comentario.id, comentario.expand?.autor?.id)"
+                      class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border-0 cursor-pointer"
+                      title="Deletar comentário"
+                    >
+                      <div class="i-mdi:close text-sm"></div>
+                    </button>
+
+                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
+                      {{ comentario.expand?.autor?.name || "Leitor" }} diz:
+                    </h4>
+                    
+                    <!-- Conteúdo com/sem spoiler -->
+                    <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)" 
+                         @click.stop="toggleSpoiler(comentario.id)"
+                         class="cursor-pointer text-[#3d3131]/60 italic text-sm py-2 mb-4">
+                      <span class="hover:text-[#3d3131] transition">
+                        Este comentário contém spoilers. Clique para revelar.
+                      </span>
+                    </div>
+                    
+                    <p v-else
+                      @click.stop="comentario.spoiler ? toggleSpoiler(comentario.id) : null"
+                      :class="['text-[#3d3131] text-sm leading-relaxed mb-4 break-words whitespace-pre-wrap', 
+                               comentario.spoiler && comentarioRevelado(comentario.id) ? 'cursor-pointer' : '']"
+                    >
+                      {{ comentario.conteudo }}
+                      <span v-if="comentario.spoiler && comentarioRevelado(comentario.id)" 
+                            class="text-xs text-roxo/60 italic block mt-2">
+                        (Clique para ocultar)
+                      </span>
+                    </p>
+
+                    <div class="flex justify-between items-center">
+                      <div class="flex gap-4 text-roxo text-xs">
+                        <div 
+                          @click.stop="darLikeComentario(comentario.id)"
+                          class="flex items-center gap-1 cursor-pointer hover:scale-110 transition"
+                          :class="{ 'text-red-500': usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) }"
+                        >
+                          <div 
+                            :class="[
+                              'text-lg',
+                              usuarioDeulLikeComentario(comentario, $pb.authStore.model?.id) 
+                                ? 'i-mdi:heart' 
+                                : 'i-mdi:heart-outline' 
+                            ]"
+                          ></div>
+                          <span class="text-texto/60 text-xs">{{ comentario.likes?.length || 0 }}</span>
+                        </div>
+
+                        <div class="flex items-center gap-1">
+                            <div class="i-mdi:comment"></div>
+                          comentários
+                        </div>
+                      </div>
+
+                      <button
+                        class="bg-roxo text-branco py-1 px-2 rounded-full border-0 font-sono text-xs"
+                      >
+                        {{ comentario.spoiler ? 'COM spoilers' : 'SEM spoilers' }}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-            </div>
+                </div>
         </div>
 
         <!-- col 3 -->
