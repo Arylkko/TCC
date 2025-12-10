@@ -1,6 +1,7 @@
 // Composable para gerenciar comunidades
 export const useComunidades = () => {
   const { $pb } = useNuxtApp();
+  const { ganharXPCriarComunidade, ganharXPComentario } = useXP();
 
   // Buscar todas as comunidades
   const buscarComunidades = async (filtro = '') => {
@@ -50,6 +51,10 @@ export const useComunidades = () => {
       }
 
       const comunidade = await $pb.collection('comunidade').create(formData);
+      
+      // Ganhar XP por criar comunidade
+      await ganharXPCriarComunidade(usuarioId);
+      
       return { sucesso: true, dados: comunidade };
     } catch (error) {
       console.error('Erro ao criar comunidade:', error);
@@ -176,6 +181,9 @@ export const useComunidades = () => {
         comunidade: comunidadeId,
         spoiler: spoiler
       });
+
+      // Ganhar XP por criar comentário
+      await ganharXPComentario(usuarioId);
 
       return { sucesso: true, dados: comentario };
     } catch (error) {

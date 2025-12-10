@@ -1,6 +1,7 @@
 // Composable para gerenciar status de leitura
 export const useStatus = () => {
   const { $pb } = useNuxtApp();
+  const { ganharXPLivroLido } = useXP();
 
   // Opções de status disponíveis
   const OPCOES_STATUS = [
@@ -37,6 +38,12 @@ export const useStatus = () => {
         const status = await $pb.collection('status').update(statusExistente.dados.id, {
           nome: nomeStatus
         });
+        
+        // Ganhar XP se marcar como "Lido"
+        if (nomeStatus === 'Lido') {
+          await ganharXPLivroLido(usuarioId);
+        }
+        
         return { sucesso: true, dados: status, atualizado: true };
       } else {
         // Cria um novo status
@@ -45,6 +52,12 @@ export const useStatus = () => {
           usuario: usuarioId,
           livro: livroId
         });
+        
+        // Ganhar XP se marcar como "Lido"
+        if (nomeStatus === 'Lido') {
+          await ganharXPLivroLido(usuarioId);
+        }
+        
         return { sucesso: true, dados: status, atualizado: false };
       }
     } catch (error) {

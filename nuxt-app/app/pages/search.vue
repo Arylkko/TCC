@@ -18,6 +18,10 @@ const livroSelecionado = ref(null);
 const listaEspecifica = ref(null); // Para quando vier de uma lista específica
 const searchType = ref('livros'); // 'livros'
 const sortBy = ref('relevancia'); // 'relevancia', 'data', 'nota'
+const mostrarDropdownData = ref(false);
+const mostrarDropdownNota = ref(false);
+const ordenacaoData = ref(''); // 'recente', 'antigo'
+const ordenacaoNota = ref(''); // 'maior', 'menor'
 
 // Infinite scroll
 const startIndex = ref(0);
@@ -71,6 +75,110 @@ function handleScroll() {
   }
 }
 
+// Função para aplicar filtros
+async function aplicarFiltros() {
+  if (results.value.length === 0) return;
+  
+  let resultadosFiltrados = [...results.value];
+  
+  // Se ordenar por nota, buscar notas do sistema primeiro
+  if (ordenacaoNota.value) {
+    loading.value = true;
+    
+    // Buscar ISBNs de todos os livros
+    const isbns = resultadosFiltrados.map(item => {
+      const identifiers = item.volumeInfo.industryIdentifiers || [];
+      return identifiers.find(id => id.type === 'ISBN_13')?.identifier || 
+             identifiers.find(id => id.type === 'ISBN_10')?.identifier || '';
+    }).filter(isbn => isbn);
+    
+    // Buscar livros do sistema que correspondem aos ISBNs
+    const livrosDoSistema = {};
+    try {
+      if (isbns.length > 0) {
+        const filter = isbns.map(isbn => `ISBN = "${isbn}"`).join(' || ');
+        const livros = await $pb.collection('livro').getList(1, 100, {
+          filter: filter,
+          fields: 'id,ISBN,AvaliacaoMedia'
+        });
+        
+        livros.items.forEach(livro => {
+          livrosDoSistema[livro.ISBN] = livro.AvaliacaoMedia || 0;
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar notas do sistema:', error);
+    }
+    
+    // Adicionar nota do sistema aos resultados
+    resultadosFiltrados = resultadosFiltrados.map(item => {
+      const identifiers = item.volumeInfo.industryIdentifiers || [];
+      const isbn = identifiers.find(id => id.type === 'ISBN_13')?.identifier || 
+                   identifiers.find(id => id.type === 'ISBN_10')?.identifier || '';
+      
+      return {
+        ...item,
+        notaSistema: livrosDoSistema[isbn] || null
+      };
+    });
+    
+    loading.value = false;
+  }
+  
+  // Ordenar por data
+  if (ordenacaoData.value === 'recente') {
+    resultadosFiltrados.sort((a, b) => {
+      const dataA = a.volumeInfo.publishedDate || '0000';
+      const dataB = b.volumeInfo.publishedDate || '0000';
+      return dataB.localeCompare(dataA);
+    });
+  } else if (ordenacaoData.value === 'antigo') {
+    resultadosFiltrados.sort((a, b) => {
+      const dataA = a.volumeInfo.publishedDate || '9999';
+      const dataB = b.volumeInfo.publishedDate || '9999';
+      return dataA.localeCompare(dataB);
+    });
+  }
+  
+  // Ordenar por nota (prioriza nota do sistema, fallback para Google Books)
+  if (ordenacaoNota.value === 'maior') {
+    resultadosFiltrados.sort((a, b) => {
+      const notaA = a.notaSistema !== null && a.notaSistema !== undefined 
+        ? a.notaSistema 
+        : (a.volumeInfo.averageRating || 0);
+      const notaB = b.notaSistema !== null && b.notaSistema !== undefined 
+        ? b.notaSistema 
+        : (b.volumeInfo.averageRating || 0);
+      return notaB - notaA;
+    });
+  } else if (ordenacaoNota.value === 'menor') {
+    resultadosFiltrados.sort((a, b) => {
+      const notaA = a.notaSistema !== null && a.notaSistema !== undefined 
+        ? a.notaSistema 
+        : (a.volumeInfo.averageRating || 0);
+      const notaB = b.notaSistema !== null && b.notaSistema !== undefined 
+        ? b.notaSistema 
+        : (b.volumeInfo.averageRating || 0);
+      return notaA - notaB;
+    });
+  }
+  
+  results.value = resultadosFiltrados;
+}
+
+// Função para selecionar ordenação por data
+function selecionarOrdenacaoData(tipo) {
+  ordenacaoData.value = tipo;
+  ordenacaoNota.value = ''; // Limpa o outro filtro
+  mostrarDropdownData.value = false;
+}
+
+// Função para selecionar ordenação por nota
+function selecionarOrdenacaoNota(tipo) {
+  ordenacaoNota.value = tipo;
+  ordenacaoData.value = ''; // Limpa o outro filtro
+  mostrarDropdownNota.value = false;
+}
 
 async function searchBooks() {
   error.value = '';
@@ -300,7 +408,6 @@ async function adicionarLivroALista(listaId) {
           <!-- Contador de resultados -->
           <h2 class="text-3xl text-texto mb-4">
             <span class="font-bold">{{ results.length }}</span>
-            <span v-if="totalItems > 0" class="text-texto/70"> de {{ totalItems }}</span>
             <span class="font-display"> resultados para </span>
               <span class="font-display text-roxo">"{{ searchTerm }}"</span>
           </h2>
@@ -328,24 +435,60 @@ async function adicionarLivroALista(listaId) {
             <div class="relative inline-block">
               <button 
                 class="flex items-center gap-1 px-1.5 py-0.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold"
+                @click="mostrarDropdownData = !mostrarDropdownData"
               >
                 <span>Data</span>
                 <div class="i-mdi:chevron-down text-sm"></div>
               </button>
+              <div 
+                v-if="mostrarDropdownData" 
+                class="absolute right-0 mt-2 w-40 bg-incipit-card rounded-lg shadow-lg z-10"
+              >
+                <button 
+                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
+                  @click="selecionarOrdenacaoData('recente')"
+                >
+                  Mais recente
+                </button>
+                <button 
+                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
+                  @click="selecionarOrdenacaoData('antigo')"
+                >
+                  Mais antigo
+                </button>
+              </div>
             </div>
 
             <!-- Dropdown Nota -->
             <div class="relative inline-block">
               <button 
                 class="flex items-center gap-1 px-1.5 py-0.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold"
+                @click="mostrarDropdownNota = !mostrarDropdownNota"
               >
                 <span>Nota</span>
                 <div class="i-mdi:chevron-down text-sm"></div>
               </button>
+              <div 
+                v-if="mostrarDropdownNota" 
+                class="absolute right-0 mt-2 w-40 bg-incipit-card rounded-lg shadow-lg z-10"
+              >
+                <button 
+                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
+                  @click="selecionarOrdenacaoNota('maior')"
+                >
+                  Maior nota
+                </button>
+                <button 
+                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
+                  @click="selecionarOrdenacaoNota('menor')"
+                >
+                  Menor nota
+                </button>
+              </div>
             </div>
 
             <!-- Botão Aplicar filtros -->
-            <button class="botao">
+            <button class="botao" @click="aplicarFiltros">
               Aplicar filtros
             </button>
           </div>

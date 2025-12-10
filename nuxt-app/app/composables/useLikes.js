@@ -1,6 +1,7 @@
 // Composable para gerenciar likes em comentários e notas
 export const useLikes = () => {
   const { $pb } = useNuxtApp();
+  const { ganharXPReceberLike } = useXP();
 
   // Toggle like em comentário
   const toggleLikeComentario = async (comentarioId) => {
@@ -12,6 +13,7 @@ export const useLikes = () => {
 
       // Buscar comentário atual
       const comentario = await $pb.collection('comentario').getOne(comentarioId, {
+        expand: 'autor',
         $autoCancel: false
       });
 
@@ -24,6 +26,11 @@ export const useLikes = () => {
       }, {
         $autoCancel: false
       });
+
+      // Dar XP ao autor do comentário apenas quando ADICIONA like (não ao remover)
+      if (!jaDeulLike && comentario.autor && comentario.autor !== usuarioId) {
+        await ganharXPReceberLike(comentario.autor);
+      }
 
       return { 
         sucesso: true, 
@@ -46,6 +53,7 @@ export const useLikes = () => {
 
       // Buscar nota atual
       const nota = await $pb.collection('notas').getOne(notaId, {
+        expand: 'autor',
         $autoCancel: false
       });
 
@@ -58,6 +66,11 @@ export const useLikes = () => {
       }, {
         $autoCancel: false
       });
+
+      // Dar XP ao autor da nota apenas quando ADICIONA like (não ao remover)
+      if (!jaDeulLike && nota.autor && nota.autor !== usuarioId) {
+        await ganharXPReceberLike(nota.autor);
+      }
 
       return { 
         sucesso: true, 

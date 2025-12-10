@@ -1,6 +1,7 @@
 // Composable para gerenciar comentários e respostas
 export const useComentarios = () => {
   const { $pb } = useNuxtApp();
+  const { ganharXPReceberComentario } = useXP();
 
   // Busca todos os comentários de um livro (apenas comentários principais, sem respostas)
   const buscarComentariosLivro = async (livroId) => {
@@ -111,8 +112,18 @@ export const useComentarios = () => {
         autor: autorId,
         conteudo: conteudo,
         comentario_pai: comentarioPaiId,
-        likes: 0
+        likes: []
       });
+      
+      // Buscar autor do comentário pai para dar XP
+      const comentarioPai = await $pb.collection('comentario').getOne(comentarioPaiId, {
+        fields: 'autor'
+      });
+      
+      // Dar XP ao autor do comentário pai (se não for ele mesmo respondendo)
+      if (comentarioPai.autor && comentarioPai.autor !== autorId) {
+        await ganharXPReceberComentario(comentarioPai.autor);
+      }
       
       return { sucesso: true, dados: resposta };
     } catch (error) {

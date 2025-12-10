@@ -1,11 +1,17 @@
-
 export const useListas = () => {
   const { $pb } = useNuxtApp();
+  const { ganharXPCriarLista } = useXP();
 
   
   const criarLista = async (dadosLista) => {
     try {
       const lista = await $pb.collection('listas').create(dadosLista);
+      
+      // Ganhar XP por criar lista
+      if (dadosLista.autor) {
+        await ganharXPCriarLista(dadosLista.autor);
+      }
+      
       return { sucesso: true, dados: lista };
     } catch (error) {
       console.error('Erro ao criar lista:', error);
