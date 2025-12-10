@@ -1,15 +1,44 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useComunidades } from "~/composables/useComunidades";
 
 const { $pb } = useNuxtApp();
 const router = useRouter();
+const route = useRoute();
 
 const comunidades = ref([]);
 const loading = ref(true);
 const buscaTexto = ref("");
+const filtroAtivo = ref("");
+const ordenacaoData = ref("desc");
 
 const { buscarComunidades } = useComunidades();
+
+// Watch para sincronizar com a URL (similar à página de busca de livros)
+watch(
+  () => route.query.q,
+  (newQ) => {
+    if (newQ !== buscaTexto.value) {
+      buscaTexto.value = newQ || "";
+    }
+    if (newQ && !loading.value) {
+      carregarComunidades();
+    }
+  },
+  { immediate: true }
+);
+
+// Watch para atualizar URL quando digitar
+let updateTimeout = null;
+watch(buscaTexto, (newTerm) => {
+  clearTimeout(updateTimeout);
+  
+  if (route.query.q !== newTerm) {
+    updateTimeout = setTimeout(() => {
+      router.replace({ query: { ...route.query, q: newTerm || undefined } });
+    }, 300);
+  }
+});
 
 async function carregarComunidades() {
   loading.value = true;
@@ -17,6 +46,7 @@ async function carregarComunidades() {
 
   if (resultado.sucesso) {
     comunidades.value = resultado.dados;
+    aplicarOrdenacao();
   }
 
   loading.value = false;
@@ -26,14 +56,45 @@ async function buscar() {
   await carregarComunidades();
 }
 
+function toggleFiltroData() {
+  if (filtroAtivo.value === "data") {
+    ordenacaoData.value = ordenacaoData.value === "desc" ? "asc" : "desc";
+  } else {
+    filtroAtivo.value = "data";
+    ordenacaoData.value = "desc";
+  }
+  aplicarOrdenacao();
+}
+
+function aplicarOrdenacao() {
+  if (comunidades.value.length === 0 || filtroAtivo.value !== "data") return;
+
+  comunidades.value.sort((a, b) => {
+    const dataA = a.created || (ordenacaoData.value === "desc" ? "0000" : "9999");
+    const dataB = b.created || (ordenacaoData.value === "desc" ? "0000" : "9999");
+    return ordenacaoData.value === "desc" ? dataB.localeCompare(dataA) : dataA.localeCompare(dataB);
+  });
+}
+
 onMounted(() => {
-  carregarComunidades();
+  // Se não há query na URL, carrega todas as comunidades
+  if (!route.query.q) {
+    carregarComunidades();
+  }
 });
 </script>
 
 <template>
   <div class="min-h-screen bg-incipit-fundo overflow-hidden relative font-sono">
-    <Header :show-search="true" />
+    <Header 
+      :show-search="true" 
+      search-context="comunidades"
+      :expandable="true"
+      :loading="loading"
+      v-model:search-term="buscaTexto"
+      @search="buscar"
+      variant="search"
+    />
 
     <main class="relative z-10 p-6">  
       <div class="max-w-screen-xl mx-auto mb-6">
@@ -43,7 +104,9 @@ onMounted(() => {
           <h2 class="text-3xl text-texto mb-4">
             <span class="font-bold">{{ comunidades.length }}</span>
             <span class="font-normal"> {{ comunidades.length === 1 ? ' comunidade encontrada' : ' comunidades encontradas' }}</span>
-          </h2>          <!-- Filtros superiores -->
+          </h2>
+
+          <!-- Filtros superiores -->
           <div class="flex items-center justify-center gap-3 mb-3">
             <span class="text-texto text-sm">Pesquisar por:</span>
             <button
@@ -55,48 +118,22 @@ onMounted(() => {
 
             <button
               class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
-              @click="searchType = 'comunidades'"
             >
               Comunidades
             </button>
           </div>
 
-          <!-- Campo de busca -->
-          <div class="flex gap-2 max-w-md mx-auto mb-6">
-            <input 
-              v-model="buscaTexto" 
-              type="text" 
-              placeholder="Buscar comunidades..."
-              @keyup.enter="buscar"
-              class="flex-1 px-4 py-2 rounded-lg bg-incipit-card text-texto border-none outline-none focus:ring-2 focus:ring-roxo"
-            />
-            <button 
-              @click="buscar"
-              class="botao"
-            >
-              Buscar
-            </button>
-          </div>
-
           <!-- Filtros de ordenação -->
           <div class="flex items-center justify-end gap-2 text-sm">
-            <div class="relative inline-block">
-              <button
-                class="flex items-center gap-1 px-3 py-1.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold hover:bg-roxo/10 transition"
-              >
-                <span>Data</span>
-                <div class="i-mdi:chevron-down text-sm"></div>
-              </button>
-            </div>
-
-            <div class="relative inline-block">
-              <button
-                class="flex items-center gap-1 px-3 py-1.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold hover:bg-roxo/10 transition"
-              >
-                <span>Nota</span>
-                <div class="i-mdi:chevron-down text-sm"></div>
-              </button>
-            </div>
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 font-sono rounded-full border-0 transition-all"
+              :class="filtroAtivo === 'data' ? 'bg-roxo text-branco font-bold' : 'bg-incipit-card text-texto hover:bg-incipit-base'"
+              @click="toggleFiltroData"
+            >
+              <span>Data</span>
+              <div v-if="filtroAtivo === 'data'" class="text-base transition-transform" :class="ordenacaoData === 'desc' ? 'i-mdi:arrow-down' : 'i-mdi:arrow-up'"></div>
+              <div v-else class="i-mdi:unfold-more-horizontal text-base"></div>
+            </button>
 
             <button 
               v-if="$pb.authStore.model" 
