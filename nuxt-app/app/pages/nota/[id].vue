@@ -28,14 +28,14 @@
           <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-texto/10 pb-6">
             
             <div class="flex items-center gap-4">
-              <div class="w-14 h-14 rounded-full bg-roxo/20 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                 <img 
-                   v-if="avatarUrl" 
-                   :src="avatarUrl" 
-                   class="w-full h-full object-cover" 
-                   alt="Avatar"
-                 />
-                 <div v-else class="i-mdi:account text-3xl text-roxo"></div>
+              <div class="w-14 h-14 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                <img 
+                  v-if="getAvatarUsuario(resenha.expand?.autor)" 
+                  :src="getAvatarUsuario(resenha.expand?.autor)" 
+                  class="w-full h-full object-cover" 
+                  alt="Avatar do usuário"
+                />
+                <div v-else class="w-full h-full bg-roxo"></div>
               </div>
               
               <div>
@@ -66,9 +66,11 @@
             {{ resenha.titulo }}
           </h1>
 
-          <div class="text-lg leading-relaxed text-texto/90 whitespace-pre-wrap break-all font-serif">
+          <div class="text-lg leading-relaxed text-texto/90 whitespace-pre-wrap break-all font-sono">
             {{ resenha.resenha }}
-          </div>          <div class="mt-10 pt-6 border-t border-texto/10 flex gap-4">
+          </div>
+
+          <div class="mt-10 pt-6 border-t border-texto/10 flex gap-4">
             <div 
               @click="darLikeNota"
               class="flex items-center gap-2 cursor-pointer hover:scale-110 transition"
@@ -108,6 +110,14 @@ const error = ref("");
 const resenha = ref(null);
 
 const resenhaId = computed(() => route.params.id);
+
+// Função para obter avatar do usuário
+function getAvatarUsuario(usuario) {
+  if (usuario?.avatar) {
+    return $pb.files.getURL(usuario, usuario.avatar);
+  }
+  return null;
+}
 
 // Função para carregar a resenha
 async function carregarResenha() {
