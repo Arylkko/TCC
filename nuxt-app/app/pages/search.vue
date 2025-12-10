@@ -304,20 +304,19 @@ async function adicionarLivroALista(listaId) {
             <span class="font-display"> resultados para </span>
               <span class="font-display text-roxo">"{{ searchTerm }}"</span>
           </h2>
-          
-          <!-- Filtros superiores -->
+            <!-- Filtros superiores -->
           <div class="flex items-center justify-center gap-3 mb-3">
             <span class="text-texto text-sm">Pesquisar por:</span>
-              <button class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
+              <button 
+                class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
                 @click="searchType = 'livros'"
-
               >
                 Livros
               </button>
 
-                            <button class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
-                @click="searchType = 'comunidades'"
-
+              <button 
+                class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
+                @click="navigateTo('/comunidades')"
               >
                 Comunidades
               </button>
