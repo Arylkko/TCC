@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue';
 import { useComunidades } from '~/composables/useComunidades';
+import { useConquistas } from '~/composables/useConquistas';
 import { useRoute, useRouter } from 'vue-router'; // Garantindo imports
 import Header from '~/components/Header.vue'; // Assumindo que você tem esse componente
 
