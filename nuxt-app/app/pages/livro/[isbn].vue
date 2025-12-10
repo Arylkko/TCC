@@ -493,9 +493,11 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </div>      </div>
     </main>
+    
+    <!-- Notificação de Conquista -->
+    <ConquistaNotificacao :conquista="conquistaObtida" />
   </div>
 </template>
 
@@ -534,6 +536,9 @@ const comentarioTemSpoiler = ref(false);
 const comentariosRevelados = ref(new Set());
 const enviandoComentario = ref(false);
 
+// Conquistas
+const conquistaObtida = ref(null);
+
 // Tags
 const mostrarInputTag = ref(false);
 const novaTag = ref("");
@@ -562,6 +567,7 @@ const { OPCOES_STATUS, buscarStatus, definirStatus } = useStatus();
 const { buscarTagsLivro, adicionarOuCriarTag, removerTagDoLivro } = useTags();
 const { toggleLikeComentario, toggleLikeNota, usuarioDeulLikeComentario, usuarioDeulLikeNota } = useLikes();
 const { ganharXPAbrirLivro, ganharXPComentario, ganharXPResenha } = useXP();
+const { verificarConquistaComentador } = useConquistas();
 
 const isAuthenticated = computed(() => $pb.authStore.isValid);
 const isbn = computed(() => route.params.isbn);
@@ -683,13 +689,23 @@ async function enviarComentario() {
       spoiler: comentarioTemSpoiler.value
     };
 
-    const resultado = await $pb.collection('comentario').create(dados);
-
-    if (resultado) {
+    const resultado = await $pb.collection('comentario').create(dados);    if (resultado) {
       novoComentario.value = '';
       comentarioTemSpoiler.value = false;
       await carregarComentarios();
+      
+      // Ganhar XP por criar comentário
       await ganharXPComentario($pb.authStore.model.id);
+      
+      // Verificar conquista "Comentador"
+      const resultadoConquista = await verificarConquistaComentador($pb.authStore.model.id);
+      if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
+        conquistaObtida.value = resultadoConquista.conquista;
+        setTimeout(() => {
+          conquistaObtida.value = null;
+        }, 5500);
+      }
+      
       alert('Comentário publicado com sucesso!');
     }
   } catch (error) {
@@ -749,6 +765,14 @@ async function alterarStatus() {
 
   if (resultado.sucesso) {
     console.log("Status atualizado com sucesso!");
+    
+    // Verificar conquista "Leitor Nato"
+    if (resultado.conquistaObtida) {
+      conquistaObtida.value = resultado.conquistaObtida;
+      setTimeout(() => {
+        conquistaObtida.value = null;
+      }, 5500);
+    }
   } else {
     alert("Erro ao atualizar status: " + resultado.erro);
   }

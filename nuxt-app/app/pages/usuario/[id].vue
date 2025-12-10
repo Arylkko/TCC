@@ -141,25 +141,73 @@
                 >NV. {{ calcularNivel(usuario.XP || 0) + 1 }}</span
               >
             </div>
-          </div>
-
-          <div class="bg-incipit-card rounded-[30px] shadow-xl p-6">
+          </div>          <div class="bg-incipit-card rounded-[30px] shadow-xl p-6 relative">
             <h2 class="text-xxl mt-0 font-display text-texto mb-4 text-center">
               Conquistas
             </h2>
-            <div v-if="conquistas.length > 0" class="flex flex-wrap justify-center gap-3">
+              <div v-if="conquistas.length > 0" class="flex flex-wrap justify-center gap-3">
               <div
                 v-for="conquista in conquistas"
-                :key="conquista.id"
-                class="bg-roxo w-16 h-16 rounded-lg flex items-center justify-center text-3xl hover:scale-110 transition-transform cursor-pointer"
-                :title="conquista.nome"
+                :key="conquista.conquistaId"
+                @click="mostrarDetalheConquista(conquista)"
+                class="bg-roxo/20 w-16 h-16 rounded-lg flex items-center justify-center hover:scale-110 transition-transform cursor-pointer p-2 overflow-hidden relative"
               >
-                {{ conquista.icone }}
+                <img 
+                  v-if="conquista.icone && conquista.conquistaId"
+                  :src="$pb.files.getURL({ collectionId: 'conquistas', id: conquista.conquistaId }, conquista.icone)"
+                  :alt="conquista.nome"
+                  class="w-full h-full object-contain"
+                  @error="(e) => console.log('Erro ao carregar imagem:', conquista)"
+                />
+                <span v-else class="text-3xl">🏆</span>
               </div>
             </div>
+            
             <p v-else class="text-texto/60 text-center text-sm mb-0">
               Nenhuma conquista ainda
             </p>
+              <!-- Tooltip Flutuante -->
+            <Transition name="fade">
+              <div 
+                v-if="conquistaSelecionada"
+                @click.self="ocultarDetalheConquista"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              >
+                <div 
+                  class="bg-incipit-card rounded-[30px] shadow-2xl p-6 max-w-sm w-full relative animate-bounce-in"
+                >
+                  <button
+                    @click.stop="ocultarDetalheConquista"
+                    class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border-0 cursor-pointer"
+                  >
+                    <div class="i-mdi:close text-lg"></div>
+                  </button>
+                  
+                  <div class="flex flex-col items-center text-center">
+                    <div class="w-24 h-24 bg-roxo/20 rounded-full flex items-center justify-center p-4 mb-4">
+                      <img 
+                        v-if="conquistaSelecionada.icone && conquistaSelecionada.conquistaId"
+                        :src="$pb.files.getURL({ collectionId: 'conquistas', id: conquistaSelecionada.conquistaId }, conquistaSelecionada.icone)"
+                        :alt="conquistaSelecionada.nome"
+                        class="w-full h-full object-contain"
+                      />
+                    </div>
+                    
+                    <h3 class="text-2xl font-display text-roxo mb-2 mt-0">
+                      {{ conquistaSelecionada.nome }}
+                    </h3>
+                    
+                    <p class="text-texto/80 mb-4">
+                      {{ conquistaSelecionada.descricao }}
+                    </p>
+                    
+                    <p class="text-xs text-texto/60">
+                      Obtida em {{ new Date(conquistaSelecionada.data).toLocaleDateString('pt-BR') }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Transition>
           </div>
 
           <div class="bg-incipit-card rounded-[30px] shadow-xl p-8 text-center">
@@ -341,6 +389,16 @@ const comunidades = ref([]);
 const editandoDescricao = ref(false);
 const novaDescricao = ref("");
 const fileInput = ref(null);
+const conquistaSelecionada = ref(null);
+
+// Funções para tooltip de conquista
+function mostrarDetalheConquista(conquista) {
+  conquistaSelecionada.value = conquista;
+}
+
+function ocultarDetalheConquista() {
+  conquistaSelecionada.value = null;
+}
 
 // ID do usuário da URL
 const userId = computed(() => route.params.id);
@@ -360,6 +418,12 @@ const avatarUrl = computed(() => {
 const getComunidadeImageUrl = (comunidade) => {
   if (!comunidade?.imagem_comunidade) return null;
   return $pb.files.getURL(comunidade, comunidade.imagem_comunidade);
+};
+
+// Função para obter URL do ícone da conquista
+const getConquistaIconeUrl = (conquista) => {
+  if (!conquista || !conquista.icone) return '';
+  return $pb.files.getUrl(conquista, conquista.icone);
 };
 
 // Carrega dados do perfil
@@ -515,3 +579,33 @@ function criarNovaComunidade() {
   router.push("/criarcomunidade");
 }
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.4s ease-out;
+}
+</style>

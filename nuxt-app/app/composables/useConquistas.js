@@ -1,11 +1,10 @@
 // Composable para gerenciar conquistas dos usuários
 export const useConquistas = () => {
   const { $pb } = useNuxtApp();
-
   // Buscar todas as conquistas disponíveis
   const buscarTodasConquistas = async () => {
     try {
-      const conquistas = await $pb.collection('conquista').getList(1, 50, {
+      const conquistas = await $pb.collection('conquistas').getList(1, 50, {
         sort: 'created'
       });
       return { sucesso: true, dados: conquistas.items };
@@ -19,7 +18,7 @@ export const useConquistas = () => {
   const usuarioPossuiConquista = async (usuarioId, nomeConquista) => {
     try {
       // Buscar a conquista pelo nome
-      const conquista = await $pb.collection('conquista').getFirstListItem(
+      const conquista = await $pb.collection('conquistas').getFirstListItem(
         `nome = "${nomeConquista}"`
       );
 
@@ -49,7 +48,7 @@ export const useConquistas = () => {
       }
 
       // Buscar dados completos da conquista
-      const conquista = await $pb.collection('conquista').getFirstListItem(
+      const conquista = await $pb.collection('conquistas').getFirstListItem(
         `nome = "${nomeConquista}"`
       );
 

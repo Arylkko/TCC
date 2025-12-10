@@ -58,7 +58,6 @@ export const useUsuario = () => {
     const xpProximoNivel = nivelAtual * 100;
     return xpProximoNivel - xp;
   };
-
   // Buscar conquistas do usuário
   const buscarConquistasUsuario = async (userId) => {
     try {
@@ -70,7 +69,8 @@ export const useUsuario = () => {
       });
 
       const conquistasComDados = usuarioConquistas.items.map(item => ({
-        id: item.id,
+        id: item.expand?.conquista?.id || item.id, // ID da conquista, não da relação
+        conquistaId: item.expand?.conquista?.id, // ID real da conquista
         nome: item.expand?.conquista?.nome || 'Conquista',
         icone: item.expand?.conquista?.icone || '🏆',
         descricao: item.expand?.conquista?.descricao || '',

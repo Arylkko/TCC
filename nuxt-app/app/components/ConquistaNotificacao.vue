@@ -1,11 +1,15 @@
 <template>
-  <Transition name="slide-up">
-    <div
+  <Transition name="slide-up">    <div
       v-if="mostrar"
       class="fixed bottom-6 right-6 z-50 bg-incipit-card rounded-[20px] shadow-2xl p-6 max-w-sm animate-bounce-in"
-    >
-      <div class="flex items-center gap-4">
-        <div class="text-6xl">{{ conquista.icone }}</div>
+    >      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 flex items-center justify-center bg-roxo/20 rounded-full overflow-hidden p-2">
+          <img 
+            :src="getIconeUrl(conquista)" 
+            :alt="conquista.nome"
+            class="w-full h-full object-contain"
+          />
+        </div>
         <div class="flex-1">
           <h3 class="text-lg font-display text-texto mb-1 mt-0">
             🏆 Conquista Desbloqueada!
@@ -21,6 +25,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 
+const { $pb } = useNuxtApp();
+
 const props = defineProps({
   conquista: {
     type: Object,
@@ -33,6 +39,12 @@ const props = defineProps({
 });
 
 const mostrar = ref(false);
+
+// Função para gerar URL da imagem do ícone
+const getIconeUrl = (conquista) => {
+  if (!conquista || !conquista.icone) return '';
+  return $pb.files.getUrl(conquista, conquista.icone);
+};
 
 watch(() => props.conquista, (novaConquista) => {
   if (novaConquista) {
