@@ -31,10 +31,14 @@ const enviandoComentario = ref(false);
 const comentarioTemSpoiler = ref(false);
 const comentariosRevelados = ref(new Set()); // IDs dos comentários revelados
 
+// Conquistas
+const conquistaObtida = ref(null);
+
 const {
   buscarComunidadePorId,
   entrarNaComunidade,
   sairDaComunidade,
+  expulsarMembro,
   ehLider,
   ehMembro,
   definirLivroSemana,
@@ -45,6 +49,7 @@ const {
 const { buscarDadosLivroAPI } = useLivros();
 const { toggleLikeComentario, usuarioDeulLikeComentario } = useLikes();
 const { deletarComentario } = useComentarios();
+const { verificarConquistaComentador, verificarConquistaMembroGalera } = useConquistas();
 
 const usuarioAtual = computed(() => $pb.authStore.model);
 const souLider = computed(() => ehLider(comunidade.value));
@@ -146,6 +151,15 @@ async function toggleMembership() {
     
     if (resultado.sucesso) {
       await carregarComunidade();
+      
+      // Verificar conquista "Membro da Galera"
+      if (resultado.conquistaObtida) {
+        conquistaObtida.value = resultado.conquistaObtida;
+        setTimeout(() => {
+          conquistaObtida.value = null;
+        }, 5500);
+      }
+      
       alert('Você entrou na comunidade com sucesso!');
     } else {
       alert(resultado.erro);
@@ -280,6 +294,14 @@ async function enviarComentario() {
     novoComentario.value = '';
     comentarioTemSpoiler.value = false;
     await carregarComentarios();
+    
+    // Verificar conquista "Comentador"
+    if (resultado.conquistaObtida) {
+      conquistaObtida.value = resultado.conquistaObtida;
+      setTimeout(() => {
+        conquistaObtida.value = null;
+      }, 5500);
+    }
   } else {
     alert('Erro ao enviar comentário: ' + resultado.erro);
   }
@@ -333,6 +355,22 @@ async function removerComentario(comentarioId, autorId) {
     await carregarComentarios();
   } else {
     alert('Erro ao deletar comentário: ' + resultado.erro);
+  }
+}
+
+// Expulsar membro
+async function expulsarMembroDaComunidade(membroId) {
+  if (!confirm('Tem certeza que deseja expulsar este membro?')) {
+    return;
+  }
+
+  const resultado = await expulsarMembro(comunidadeId, membroId);
+  
+  if (resultado.sucesso) {
+    await carregarComunidade();
+    alert('Membro expulso com sucesso');
+  } else {
+    alert('Erro ao expulsar membro: ' + resultado.erro);
   }
 }
 
@@ -650,11 +688,14 @@ onMounted(async () => {
                             <div class="flex items-center gap-2 flex-1 min-w-0">
                                 <span class="font-bold text-sm truncate">{{ membro.name || membro.username }}</span>
                                 <div v-if="membro.id === comunidade.lider" class="i-mdi:crown text-yellow-600 text-sm" title="Líder"></div>
-                            </div>
-
-                            <!-- açoes  -->
-                            <button v-if="souLider && membro.id !== usuarioAtual.id" class="text-roxo bg-[rgba(166,141,173,0.2)] rounded-[100%] border-0 hover:text-red-500">
-                                <div class="i-mdi:close"></div>
+                            </div>                            <!-- açoes  -->
+                            <button 
+                              v-if="souLider && membro.id !== usuarioAtual?.id" 
+                              @click="expulsarMembroDaComunidade(membro.id)"
+                              class="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border-0 cursor-pointer"
+                              title="Expulsar membro"
+                            >
+                                <div class="i-mdi:close text-sm"></div>
                             </button>
                         </div>
                     </div>
@@ -662,10 +703,13 @@ onMounted(async () => {
                 </div>
             </div>
 
-        </div>
+        </div>      </div>
+    </main>
+    
+    <!-- Notificação de Conquista -->
+    <ConquistaNotificacao :conquista="conquistaObtida" />
 
-      </div>
-    </main>    <!-- Modal Selecionar Livro -->
+    <!-- Modal Selecionar Livro -->
     <div v-if="mostrarModalLivro" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div class="bg-[#f3eddb] rounded-[30px] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-incipit-card">
         <h3 class="text-2xl font-display text-[#3d3131] mb-6 text-center">Selecionar Livro Comunitário</h3>

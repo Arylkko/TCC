@@ -2,6 +2,7 @@
 export const useComunidades = () => {
   const { $pb } = useNuxtApp();
   const { ganharXPCriarComunidade, ganharXPComentario } = useXP();
+  const { verificarConquistaComentador, verificarConquistaMembroGalera } = useConquistas();
 
   // Buscar todas as comunidades
   const buscarComunidades = async (filtro = '') => {
@@ -78,16 +79,18 @@ export const useComunidades = () => {
       
       if (comunidade.membros && comunidade.membros.includes(usuarioId)) {
         return { sucesso: false, erro: 'Você já é membro desta comunidade' };
-      }
-
-      // Usar operador += para adicionar membro (sintaxe do PocketBase para relações)
+      }      // Usar operador += para adicionar membro (sintaxe do PocketBase para relações)
       const atualizado = await $pb.collection('comunidade').update(comunidadeId, {
         'membros+': usuarioId  // Usar += para adicionar sem remover os existentes
       }, {
         $autoCancel: false
       });
 
- 
+      // Verificar conquista "Membro da Galera"
+      const resultadoConquista = await verificarConquistaMembroGalera(usuarioId);
+      if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
+        return { sucesso: true, dados: atualizado, conquistaObtida: resultadoConquista.conquista };
+      }
 
       return { sucesso: true, dados: atualizado };
     } catch (error) {
@@ -122,6 +125,40 @@ export const useComunidades = () => {
       console.error('Erro ao sair da comunidade:', error);
       console.error('Detalhes do erro:', error.response?.data);
       return { sucesso: false, erro: error.message || 'Erro ao sair da comunidade' };
+    }
+  };
+
+  // Expulsar membro da comunidade (apenas líder)
+  const expulsarMembro = async (comunidadeId, membroId) => {
+    try {
+      const usuarioId = $pb.authStore.model?.id;
+      if (!usuarioId) {
+        return { sucesso: false, erro: 'Usuário não autenticado' };
+      }
+
+      const comunidade = await $pb.collection('comunidade').getOne(comunidadeId);
+
+      // Verificar se quem está expulsando é o líder
+      if (comunidade.lider !== usuarioId) {
+        return { sucesso: false, erro: 'Apenas o líder pode expulsar membros' };
+      }
+
+      // Não pode expulsar o próprio líder
+      if (membroId === comunidade.lider) {
+        return { sucesso: false, erro: 'O líder não pode ser expulso' };
+      }
+
+      // Remover membro da lista
+      const novosMembros = (comunidade.membros || []).filter(id => id !== membroId);
+      
+      const atualizado = await $pb.collection('comunidade').update(comunidadeId, {
+        'membros': novosMembros
+      });
+
+      return { sucesso: true, dados: atualizado };
+    } catch (error) {
+      console.error('Erro ao expulsar membro:', error);
+      return { sucesso: false, erro: error.message || 'Erro ao expulsar membro' };
     }
   };
 
@@ -172,9 +209,7 @@ export const useComunidades = () => {
       const usuarioId = $pb.authStore.model?.id;
       if (!usuarioId) {
         return { sucesso: false, erro: 'Usuário não autenticado' };
-      }
-
-      const comentario = await $pb.collection('comentario').create({
+      }      const comentario = await $pb.collection('comentario').create({
         conteudo,
         autor: usuarioId,
         comunidade: comunidadeId,
@@ -183,6 +218,12 @@ export const useComunidades = () => {
 
       // Ganhar XP por criar comentário
       await ganharXPComentario(usuarioId);
+      
+      // Verificar conquista "Comentador"
+      const resultadoConquista = await verificarConquistaComentador(usuarioId);
+      if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
+        return { sucesso: true, dados: comentario, conquistaObtida: resultadoConquista.conquista };
+      }
 
       return { sucesso: true, dados: comentario };
     } catch (error) {
@@ -197,6 +238,7 @@ export const useComunidades = () => {
     criarComunidade,
     entrarNaComunidade,
     sairDaComunidade,
+    expulsarMembro,
     ehLider,
     ehMembro,
     definirLivroSemana,
