@@ -775,17 +775,12 @@ function formatarData(data) {
 
 function calcularDistribuicao(estrelas) {
   if (!notas.value || notas.value.length === 0) return 0;
-  
   const count = notas.value.filter((n) => n.avaliacao === estrelas).length;
-  const percentual = (count / notas.value.length) * 100;
-  
-  console.log(`Estrelas ${estrelas}: ${count} avaliações (${percentual.toFixed(1)}%)`);
-  
-  return percentual;
+  return (count / notas.value.length) * 100;
 }
 
 function ExpandirResenha(nota) {
-  console.log(nota.id);
+
   if (nota.id) {
     navigateTo(`/nota/${nota.id}`);
   } else {
@@ -794,7 +789,7 @@ function ExpandirResenha(nota) {
 }
 
 function ExpandirComentario(comentario) {
-  console.log(comentario.id);
+
   if (comentario.id) {
     navigateTo(`/comentario/c${comentario.id}`);
   } else {
