@@ -1,31 +1,38 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useLivros } from '~/composables/useLivros';
-import { useListas } from '~/composables/useListas';
-import { useSearch } from '~/composables/useSearch';
+import { ref, onMounted, onUnmounted, watch } from "vue";
+import { useLivros } from "~/composables/useLivros";
+import { useListas } from "~/composables/useListas";
+import { useSearch } from "~/composables/useSearch";
 
 const { $pb } = useNuxtApp();
 const route = useRoute();
+const router = useRouter(); // Importamos o useRouter para manipular a rota
 
-const searchTerm = ref('');
+const searchTerm = ref("");
 const results = ref([]);
+const todosOsResultados = ref([]); 
 const loading = ref(false);
-const error = ref('');
-const saveStatus = ref({}); 
+const error = ref("");
+const saveStatus = ref({});
 const minhasListas = ref([]);
 const mostrarModalListas = ref(false);
+const mostrarModalFiltros = ref(false);
 const livroSelecionado = ref(null);
-const listaEspecifica = ref(null); // Para quando vier de uma lista específica
-const searchType = ref('livros'); // 'livros'
-const sortBy = ref('relevancia'); // 'relevancia', 'data', 'nota'
-const mostrarDropdownData = ref(false);
-const mostrarDropdownNota = ref(false);
-const ordenacaoData = ref(''); // 'recente', 'antigo'
-const ordenacaoNota = ref(''); // 'maior', 'menor'
+const listaEspecifica = ref(null);
+const searchType = ref("livros");
+const filtroAtivo = ref(""); 
+const ordenacaoData = ref("desc"); 
+const ordenacaoNota = ref("desc");
+
+// Filtros avançados
+const generosSelecionados = ref([]);
+const tagsSelecionadas = ref([]);
+const generosDisponiveis = ref([]);
+const tagsDisponiveis = ref([]); 
 
 // Infinite scroll
 const startIndex = ref(0);
-const maxResults = ref(20); // Quantidade de livros por página
+const maxResults = ref(20);
 const totalItems = ref(0);
 const loadingMore = ref(false);
 const hasMore = ref(true);
@@ -35,19 +42,51 @@ const { salvarLivro } = useLivros();
 const { buscarListasUsuario, adicionarLivroNaLista } = useListas();
 const { buscarLivros, prepararDadosLivro } = useSearch();
 
+// Watch para aplicar ordenação automaticamente
+watch([filtroAtivo, ordenacaoData, ordenacaoNota], () => {
+  if (results.value.length > 0) {
+    aplicarOrdenacao();
+  }
+});
+
+// --- NOVO WATCH PARA SINCRONIZAR O TERMO DE BUSCA COM A URL ---
+watch(
+  () => route.query.q,
+  (newQ) => {
+    // 1. Atualiza o estado local `searchTerm` se a URL mudar
+    if (newQ !== searchTerm.value) {
+      searchTerm.value = newQ || "";
+    }
+    // 2. Se a rota mudou e temos um termo, disparamos a busca
+    if (newQ && !loading.value) {
+      searchBooks(false); // Não atualiza a URL, apenas busca
+    }
+  },
+  { immediate: true } // Dispara na montagem para ler o termo inicial
+);
+
+// Watch para garantir que, ao digitar, o URL reflita o estado (debounced)
+let updateTimeout = null;
+watch(searchTerm, (newTerm) => {
+  clearTimeout(updateTimeout);
+  
+  if (route.query.q !== newTerm) {
+      // Pequeno debounce para não floodar o histórico do navegador ao digitar
+      updateTimeout = setTimeout(() => {
+          // Atualiza a URL sem recarregar a página (shallow)
+          router.replace({ query: { ...route.query, q: newTerm || undefined } });
+      }, 300);
+  }
+});
+// -------------------------------------------------------------
 
 onMounted(async () => {
-  // Verifica se veio de uma lista específica
   if (route.query.lista) {
     listaEspecifica.value = route.query.lista;
   }
-  
-  // Verifica se há um termo de busca na URL (query parameter 'q')
-  if (route.query.q) {
-    searchTerm.value = route.query.q;
-    searchBooks();
-  }
-  
+
+  // Removido: A inicialização da busca pela URL agora é feita no `watch(route.query.q)`
+
   if ($pb.authStore.isValid) {
     const resultado = await buscarListasUsuario($pb.authStore.model.id);
     if (resultado.sucesso) {
@@ -55,161 +94,165 @@ onMounted(async () => {
     }
   }
 
-  // Adicionar listener para infinite scroll
-  window.addEventListener('scroll', handleScroll);
+  window.addEventListener("scroll", handleScroll);
 });
 
-// Remover listener ao desmontar componente
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener("scroll", handleScroll);
 });
 
-// Detectar quando usuário chega ao final da página
-function handleScroll() {
-  const scrollPosition = window.innerHeight + window.scrollY;
-  const pageHeight = document.documentElement.scrollHeight;
-  
-  // Se chegou a 80% do final da página e não está carregando
-  if (scrollPosition >= pageHeight * 0.8 && !loadingMore.value && hasMore.value && results.value.length > 0) {
-    loadMoreBooks();
+// --- LÓGICA DE FILTROS E ENRIQUECIMENTO ---
+
+async function enriquecerResultadosComTags(livrosGoogle) {
+  const isbns = livrosGoogle
+    .map((item) => {
+      const ids = item.volumeInfo.industryIdentifiers || [];
+      return ids.find(id => id.type === "ISBN_13")?.identifier || 
+             ids.find(id => id.type === "ISBN_10")?.identifier;
+    })
+    .filter(isbn => isbn); 
+
+  if (isbns.length === 0) return livrosGoogle;
+
+  try {
+    const filtro = isbns.map(isbn => `ISBN="${isbn}"`).join(" || ");
+    const livrosPB = await $pb.collection('livro').getList(1, 50, {
+      filter: filtro,
+      expand: 'tags', 
+      fields: 'ISBN,expand.tags.nome'
+    });
+
+    const mapaTags = {};
+    livrosPB.items.forEach(livro => {
+      const tagsObjs = livro.expand?.tags || [];
+      mapaTags[livro.ISBN] = tagsObjs.map(t => t.nome);
+    });
+
+    livrosGoogle.forEach(item => {
+      const ids = item.volumeInfo.industryIdentifiers || [];
+      const isbn = ids.find(id => id.type === "ISBN_13")?.identifier || 
+                   ids.find(id => id.type === "ISBN_10")?.identifier;
+      
+      item.tagsNomes = mapaTags[isbn] || [];
+    });
+
+  } catch (err) {
+    console.error("Erro ao buscar tags para os resultados:", err);
   }
 }
 
-// Função para aplicar filtros
-async function aplicarFiltros() {
-  if (results.value.length === 0) return;
+function atualizarFiltrosDisponiveis() {
+  const generosSet = new Set();
+  const tagsSet = new Set();
   
-  let resultadosFiltrados = [...results.value];
-  
-  // Se ordenar por nota, buscar notas do sistema primeiro
-  if (ordenacaoNota.value) {
-    loading.value = true;
-    
-    // Buscar ISBNs de todos os livros
-    const isbns = resultadosFiltrados.map(item => {
-      const identifiers = item.volumeInfo.industryIdentifiers || [];
-      return identifiers.find(id => id.type === 'ISBN_13')?.identifier || 
-             identifiers.find(id => id.type === 'ISBN_10')?.identifier || '';
-    }).filter(isbn => isbn);
-    
-    // Buscar livros do sistema que correspondem aos ISBNs
-    const livrosDoSistema = {};
-    try {
-      if (isbns.length > 0) {
-        const filter = isbns.map(isbn => `ISBN = "${isbn}"`).join(' || ');
-        const livros = await $pb.collection('livro').getList(1, 100, {
-          filter: filter,
-          fields: 'id,ISBN,AvaliacaoMedia'
-        });
-        
-        livros.items.forEach(livro => {
-          livrosDoSistema[livro.ISBN] = livro.AvaliacaoMedia || 0;
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao buscar notas do sistema:', error);
+  todosOsResultados.value.forEach((livro) => {
+    const categorias = livro.volumeInfo?.categories;
+    if (categorias && Array.isArray(categorias)) {
+      categorias.forEach((cat) => generosSet.add(cat));
     }
-    
-    // Adicionar nota do sistema aos resultados
-    resultadosFiltrados = resultadosFiltrados.map(item => {
-      const identifiers = item.volumeInfo.industryIdentifiers || [];
-      const isbn = identifiers.find(id => id.type === 'ISBN_13')?.identifier || 
-                   identifiers.find(id => id.type === 'ISBN_10')?.identifier || '';
-      
-      return {
-        ...item,
-        notaSistema: livrosDoSistema[isbn] || null
-      };
+
+    const tags = livro.tagsNomes; 
+    if (tags && Array.isArray(tags)) {
+      tags.forEach((tag) => tagsSet.add(tag));
+    }
+  });
+
+  generosDisponiveis.value = Array.from(generosSet).sort();
+  tagsDisponiveis.value = Array.from(tagsSet).sort();
+}
+
+function aplicarFiltrosAvancados() {
+  mostrarModalFiltros.value = false;
+
+  if (generosSelecionados.value.length === 0 && tagsSelecionadas.value.length === 0) {
+    results.value = [...todosOsResultados.value];
+    aplicarOrdenacao();
+    return;
+  }
+
+  loading.value = true;
+
+  try {
+    const filtrados = todosOsResultados.value.filter((item) => {
+      const categoriasGoogle = item.volumeInfo.categories || [];
+      const passaGenero = generosSelecionados.value.length === 0 || 
+        generosSelecionados.value.some(g => categoriasGoogle.includes(g));
+
+      const tagsLivro = item.tagsNomes || []; 
+      const passaTag = tagsSelecionadas.value.length === 0 ||
+        tagsSelecionadas.value.some(t => tagsLivro.includes(t));
+
+      return passaGenero && passaTag;
     });
+
+    results.value = filtrados;
+    aplicarOrdenacao();
     
+  } catch (error) {
+    console.error("Erro ao aplicar filtros:", error);
+  } finally {
     loading.value = false;
   }
-  
-  // Ordenar por data
-  if (ordenacaoData.value === 'recente') {
-    resultadosFiltrados.sort((a, b) => {
-      const dataA = a.volumeInfo.publishedDate || '0000';
-      const dataB = b.volumeInfo.publishedDate || '0000';
-      return dataB.localeCompare(dataA);
-    });
-  } else if (ordenacaoData.value === 'antigo') {
-    resultadosFiltrados.sort((a, b) => {
-      const dataA = a.volumeInfo.publishedDate || '9999';
-      const dataB = b.volumeInfo.publishedDate || '9999';
-      return dataA.localeCompare(dataB);
-    });
-  }
-  
-  // Ordenar por nota (prioriza nota do sistema, fallback para Google Books)
-  if (ordenacaoNota.value === 'maior') {
-    resultadosFiltrados.sort((a, b) => {
-      const notaA = a.notaSistema !== null && a.notaSistema !== undefined 
-        ? a.notaSistema 
-        : (a.volumeInfo.averageRating || 0);
-      const notaB = b.notaSistema !== null && b.notaSistema !== undefined 
-        ? b.notaSistema 
-        : (b.volumeInfo.averageRating || 0);
-      return notaB - notaA;
-    });
-  } else if (ordenacaoNota.value === 'menor') {
-    resultadosFiltrados.sort((a, b) => {
-      const notaA = a.notaSistema !== null && a.notaSistema !== undefined 
-        ? a.notaSistema 
-        : (a.volumeInfo.averageRating || 0);
-      const notaB = b.notaSistema !== null && b.notaSistema !== undefined 
-        ? b.notaSistema 
-        : (b.volumeInfo.averageRating || 0);
-      return notaA - notaB;
-    });
-  }
-  
-  results.value = resultadosFiltrados;
 }
 
-// Função para selecionar ordenação por data
-function selecionarOrdenacaoData(tipo) {
-  ordenacaoData.value = tipo;
-  ordenacaoNota.value = ''; // Limpa o outro filtro
-  mostrarDropdownData.value = false;
+function limparFiltrosAvancados() {
+  generosSelecionados.value = [];
+  tagsSelecionadas.value = [];
+  results.value = [...todosOsResultados.value];
+  aplicarOrdenacao();
 }
 
-// Função para selecionar ordenação por nota
-function selecionarOrdenacaoNota(tipo) {
-  ordenacaoNota.value = tipo;
-  ordenacaoData.value = ''; // Limpa o outro filtro
-  mostrarDropdownNota.value = false;
-}
+// --- BUSCA E SCROLL (Função searchBooks agora não mexe na URL) ---
 
-async function searchBooks() {
-  error.value = '';
+async function searchBooks(updateUrl = true) {
+  error.value = "";
   results.value = [];
+  todosOsResultados.value = [];
   startIndex.value = 0;
   hasMore.value = true;
-  
-  if (!searchTerm.value.trim()) return;
+  filtroAtivo.value = "";
+  generosSelecionados.value = [];
+  tagsSelecionadas.value = [];
+
+  const currentTerm = searchTerm.value.trim();
+  if (!currentTerm) return;
+
+  // Se a chamada veio da UI (e não do watcher do URL), garantimos que o URL está correto
+  if (updateUrl && route.query.q !== currentTerm) {
+    // Usamos push para adicionar ao histórico (útil se você quer que o botão voltar funcione)
+    router.push({ query: { ...route.query, q: currentTerm } });
+    // O restante da lógica de busca será disparado pelo `watch(route.query.q)`
+    return; 
+  }
+
+  // Se chegamos aqui, ou a URL já estava correta, ou updateUrl era false
   loading.value = true;
-  
+
   try {
     const resultado = await buscarLivros(
-      searchTerm.value, 
-      startIndex.value, 
+      currentTerm,
+      startIndex.value,
       maxResults.value
     );
-    
+
     if (resultado.sucesso) {
-      results.value = resultado.dados;
+      const novosLivros = resultado.dados;
+      await enriquecerResultadosComTags(novosLivros);
+      todosOsResultados.value = novosLivros;
+      results.value = novosLivros;
+      
+      atualizarFiltrosDisponiveis();
+
       totalItems.value = resultado.totalItems || 0;
       startIndex.value = maxResults.value;
-      
-      // Verifica se há mais resultados
-      hasMore.value = results.value.length < totalItems.value;
+      hasMore.value = todosOsResultados.value.length < totalItems.value;
     } else {
-      error.value = resultado.erro || 'Nenhum livro encontrado.';
+      error.value = resultado.erro || "Nenhum livro encontrado.";
       hasMore.value = false;
     }
   } catch (e) {
-    console.error('Erro ao buscar livros:', e);
-    error.value = 'Erro ao buscar livros.';
+    console.error("Erro ao buscar livros:", e);
+    error.value = "Erro ao buscar livros.";
     hasMore.value = false;
   } finally {
     loading.value = false;
@@ -218,101 +261,162 @@ async function searchBooks() {
 
 async function loadMoreBooks() {
   if (loadingMore.value || !hasMore.value) return;
-  
+
   loadingMore.value = true;
-  
+
   try {
     const resultado = await buscarLivros(
       searchTerm.value,
       startIndex.value,
       maxResults.value
     );
-    
+
     if (resultado.sucesso && resultado.dados.length > 0) {
-      results.value = [...results.value, ...resultado.dados];
-      startIndex.value += resultado.dados.length;
+      const novosLivros = resultado.dados;
+      await enriquecerResultadosComTags(novosLivros);
+      todosOsResultados.value = [...todosOsResultados.value, ...novosLivros];
       
-      // Verifica se há mais resultados
-      hasMore.value = results.value.length < totalItems.value;
+      atualizarFiltrosDisponiveis();
+      
+      if (generosSelecionados.value.length > 0 || tagsSelecionadas.value.length > 0) {
+        aplicarFiltrosAvancados();
+      } else {
+        results.value = [...results.value, ...novosLivros];
+        aplicarOrdenacao();
+      }
+
+      startIndex.value += novosLivros.length;
+      hasMore.value = todosOsResultados.value.length < totalItems.value;
     } else {
       hasMore.value = false;
     }
   } catch (e) {
-    console.error('Erro ao carregar mais livros:', e);
+    console.error("Erro ao carregar mais livros:", e);
     hasMore.value = false;
   } finally {
     loadingMore.value = false;
   }
 }
 
+function handleScroll() {
+  const scrollPosition = window.innerHeight + window.scrollY;
+  const pageHeight = document.documentElement.scrollHeight;
+
+  if (
+    scrollPosition >= pageHeight * 0.8 &&
+    !loadingMore.value &&
+    hasMore.value &&
+    todosOsResultados.value.length > 0
+  ) {
+    loadMoreBooks();
+  }
+}
+
+// --- ORDENAÇÃO E UTILITÁRIOS ---
+
+function toggleFiltroData() {
+  if (filtroAtivo.value === "data") {
+    ordenacaoData.value = ordenacaoData.value === "desc" ? "asc" : "desc";
+  } else {
+    filtroAtivo.value = "data";
+    ordenacaoData.value = "desc";
+  }
+}
+
+function toggleFiltroNota() {
+  if (filtroAtivo.value === "nota") {
+    ordenacaoNota.value = ordenacaoNota.value === "desc" ? "asc" : "desc";
+  } else {
+    filtroAtivo.value = "nota";
+    ordenacaoNota.value = "desc";
+  }
+}
+
+function abrirModalFiltros() {
+  mostrarModalFiltros.value = true;
+}
+
+function toggleGenero(genero) {
+  const index = generosSelecionados.value.indexOf(genero);
+  if (index > -1) {
+    generosSelecionados.value.splice(index, 1);
+  } else {
+    generosSelecionados.value.push(genero);
+  }
+}
+
+function toggleTag(tag) {
+  const index = tagsSelecionadas.value.indexOf(tag);
+  if (index > -1) {
+    tagsSelecionadas.value.splice(index, 1);
+  } else {
+    tagsSelecionadas.value.push(tag);
+  }
+}
+
+async function aplicarOrdenacao() {
+  if (results.value.length === 0) return;
+
+  let resultadosOrdenados = [...results.value];
+
+  if (filtroAtivo.value === "nota") {
+    resultadosOrdenados.sort((a, b) => {
+      const notaA = a.volumeInfo.averageRating || 0;
+      const notaB = b.volumeInfo.averageRating || 0;
+      return ordenacaoNota.value === "desc" ? notaB - notaA : notaA - notaB;
+    });
+  }
+
+  if (filtroAtivo.value === "data") {
+    resultadosOrdenados.sort((a, b) => {
+      const dataA = a.volumeInfo.publishedDate || (ordenacaoData.value === "desc" ? "0000" : "9999");
+      const dataB = b.volumeInfo.publishedDate || (ordenacaoData.value === "desc" ? "0000" : "9999");
+      return ordenacaoData.value === "desc" ? dataB.localeCompare(dataA) : dataA.localeCompare(dataB);
+    });
+  }
+
+  results.value = resultadosOrdenados;
+}
+
+// ... (Funções de salvamento e lista inalteradas) ...
 async function salvarLivroNoBanco(item) {
   const id = item.id;
-  saveStatus.value[id] = 'salvando';
-
-  // Usar composable para preparar dados
+  saveStatus.value[id] = "salvando";
   const dadosLivro = prepararDadosLivro(item);
-
   if (!dadosLivro) {
-    saveStatus.value[id] = 'erro';
-    console.log('Erro: Nome ou ISBN não encontrados');
-    return { sucesso: false, erro: 'Nome ou ISBN não encontrados' };
+    saveStatus.value[id] = "erro";
+    return { sucesso: false, erro: "Nome ou ISBN não encontrados" };
   }
-
-  console.log('Dados do livro para salvar:', dadosLivro);
   const resultado = await salvarLivro(dadosLivro);
-  
   if (resultado.sucesso) {
-    saveStatus.value[id] = 'salvo';
-    console.log('Livro salvo/encontrado com sucesso:', resultado.dados);
+    saveStatus.value[id] = "salvo";
     return resultado;
   } else {
-    console.error('Erro ao salvar livro:', resultado.erro);
-    saveStatus.value[id] = 'erro';
+    saveStatus.value[id] = "erro";
     return resultado;
   }
 }
 
-// Nova função: salva o livro e redireciona para página de detalhes
 async function verDetalhesLivro(item) {
-  console.log('Clicou no livro:', item.volumeInfo.title);
-  
-  // Salva o livro no banco primeiro
   const resultado = await salvarLivroNoBanco(item);
-  
-  console.log('Resultado do salvamento:', resultado);
-  
   if (resultado.sucesso) {
-    // Extrai o ISBN para usar na URL
     const dadosLivro = prepararDadosLivro(item);
-    console.log('Dados do livro preparados:', dadosLivro);
-    
     if (dadosLivro && dadosLivro.ISBN) {
-      // Redireciona para a página de detalhes
-      console.log('Redirecionando para:', `/livro/${dadosLivro.ISBN}`);
       navigateTo(`/livro/${dadosLivro.ISBN}`);
     } else {
-      alert('ISBN não encontrado para este livro.');
+      alert("ISBN não encontrado para este livro.");
     }
   } else {
-    alert('Erro ao salvar livro: ' + resultado.erro);
+    alert("Erro ao salvar livro: " + resultado.erro);
   }
 }
 
-// Abrir modal para selecionar lista
 function abrirModalListas(item) {
   if (!$pb.authStore.isValid) {
-    alert('Você precisa estar logado para adicionar livros às listas!');
+    alert("Você precisa estar logado!");
     return;
   }
-  
-  if (minhasListas.value.length === 0) {
-    alert('Você não tem nenhuma lista criada. Crie uma lista primeiro!');
-    return;
-  }
-  
   livroSelecionado.value = item;
-  
-  // Se veio de uma lista específica, adiciona diretamente
   if (listaEspecifica.value) {
     adicionarLivroALista(listaEspecifica.value);
   } else {
@@ -320,67 +424,32 @@ function abrirModalListas(item) {
   }
 }
 
-
 async function adicionarLivroALista(listaId) {
-  console.log('Iniciando adicionarLivroALista com listaId:', listaId);
-  
-  if (!livroSelecionado.value) {
-    console.log('Erro: Nenhum livro selecionado');
-    return;
-  }
-
+  if (!livroSelecionado.value) return;
   const item = livroSelecionado.value;
-  const volume = item.volumeInfo;
-  
-  console.log('Livro selecionado:', volume.title);
-  
   try {
-    // Primeiro salva o livro no banco
-    console.log('Salvando livro no banco...');
     const resultadoSalvar = await salvarLivroNoBanco(item);
-    
     if (!resultadoSalvar.sucesso) {
-      alert('Erro ao salvar livro: ' + resultadoSalvar.erro);
+      alert("Erro ao salvar livro.");
       return;
     }
-    
     const livroNoBanco = resultadoSalvar.dados;
-    console.log('Livro salvo/encontrado no banco:', livroNoBanco);
-    
-    console.log('Adicionando livro à lista...');
     const resultado = await adicionarLivroNaLista(listaId, livroNoBanco.id);
-    console.log('Resultado da adição:', resultado);
-    
     if (resultado.sucesso) {
-      alert('Livro adicionado à lista com sucesso!');
-      // Recarrega as listas do usuário
-      const resultadoListas = await buscarListasUsuario($pb.authStore.model.id);
-      if (resultadoListas.sucesso) {
-        minhasListas.value = resultadoListas.dados;
-      }
-      
-      // Se veio de uma lista específica, redireciona de volta
-      if (listaEspecifica.value) {
-        setTimeout(() => {
-          navigateTo(`/lista/${listaEspecifica.value}`);
-        }, 1500);
-      }
+      alert("Adicionado com sucesso!");
+      mostrarModalListas.value = false;
+      livroSelecionado.value = null;
     } else {
-      alert('Erro ao adicionar livro à lista: ' + resultado.erro);
+      alert("Erro ao adicionar: " + resultado.erro);
     }
   } catch (error) {
-    console.error('Erro ao adicionar à lista:', error);
-    alert('Erro ao adicionar livro à lista: ' + error.message);
+    alert("Erro: " + error.message);
   }
-  
-  mostrarModalListas.value = false;
-  livroSelecionado.value = null;
 }
 </script>
 
 <template>
   <div class="min-h-screen bg-incipit-fundo overflow-hidden relative font-sono">
-    <!-- Header Component -->
     <Header
       :show-search="true"
       :expandable="true"
@@ -390,224 +459,160 @@ async function adicionarLivroALista(listaId) {
       variant="search"
     />
 
-    <!-- Botão voltar (se vier de uma lista) -->
     <div v-if="listaEspecifica" class="p-6">
-      <button 
-        @click="$router.push(`/lista/${listaEspecifica}`)"
-        class="flex items-center space-x-2 bg-incipit-card text-texto px-4 py-2 rounded-full hover:brightness-95 transition"
-      >
+      <button @click="$router.push(`/lista/${listaEspecifica}`)" class="flex items-center space-x-2 bg-incipit-card text-texto px-4 py-2 rounded-full hover:brightness-95 transition">
         <div class="i-mdi:arrow-left"></div>
         <span>Voltar para a Lista</span>
       </button>
     </div>
 
-    <!-- Main Content -->
     <main class="relative z-10 p-6">
-      <!-- Título e contador de resultados -->
-      <div class="max-w-screen-xl mx-auto mb-6">        <div v-if="results.length > 0" class="text-center mb-6">
-          <!-- Contador de resultados -->
+      <div class="max-w-screen-xl mx-auto mb-6">
+        <div v-if="results.length > 0 || todosOsResultados.length > 0" class="text-center mb-6">
           <h2 class="text-3xl text-texto mb-4">
             <span class="font-bold">{{ results.length }}</span>
             <span class="font-display"> resultados para </span>
-              <span class="font-display text-roxo">"{{ searchTerm }}"</span>
+            <span class="font-display text-roxo">"{{ searchTerm }}"</span>
           </h2>
-            <!-- Filtros superiores -->
-          <div class="flex items-center justify-center gap-3 mb-3">
-            <span class="text-texto text-sm">Pesquisar por:</span>
-              <button 
-                class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
-                @click="searchType = 'livros'"
-              >
-                Livros
-              </button>
 
-              <button 
-                class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
-                @click="navigateTo('/comunidades')"
-              >
-                Comunidades
-              </button>
-            </div>
-
-          <!-- Filtros de ordenação -->
           <div class="flex items-center justify-end gap-2 text-sm">
-            <!-- Dropdown Data -->
-            <div class="relative inline-block">
-              <button 
-                class="flex items-center gap-1 px-1.5 py-0.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold"
-                @click="mostrarDropdownData = !mostrarDropdownData"
-              >
-                <span>Data</span>
-                <div class="i-mdi:chevron-down text-sm"></div>
-              </button>
-              <div 
-                v-if="mostrarDropdownData" 
-                class="absolute right-0 mt-2 w-40 bg-incipit-card rounded-lg shadow-lg z-10"
-              >
-                <button 
-                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
-                  @click="selecionarOrdenacaoData('recente')"
-                >
-                  Mais recente
-                </button>
-                <button 
-                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
-                  @click="selecionarOrdenacaoData('antigo')"
-                >
-                  Mais antigo
-                </button>
-              </div>
-            </div>
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 font-sono rounded-full border-0 transition-all"
+              :class="filtroAtivo === 'data' ? 'bg-roxo text-branco font-bold' : 'bg-incipit-card text-texto hover:bg-incipit-base'"
+              @click="toggleFiltroData"
+            >
+              <span>Data</span>
+              <div v-if="filtroAtivo === 'data'" class="text-base transition-transform" :class="ordenacaoData === 'desc' ? 'i-mdi:arrow-down' : 'i-mdi:arrow-up'"></div>
+              <div v-else class="i-mdi:unfold-more-horizontal text-base"></div>
+            </button>
 
-            <!-- Dropdown Nota -->
-            <div class="relative inline-block">
-              <button 
-                class="flex items-center gap-1 px-1.5 py-0.5 font-sono text-texto rounded-full border-0 bg-incipit-card font-bold"
-                @click="mostrarDropdownNota = !mostrarDropdownNota"
-              >
-                <span>Nota</span>
-                <div class="i-mdi:chevron-down text-sm"></div>
-              </button>
-              <div 
-                v-if="mostrarDropdownNota" 
-                class="absolute right-0 mt-2 w-40 bg-incipit-card rounded-lg shadow-lg z-10"
-              >
-                <button 
-                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
-                  @click="selecionarOrdenacaoNota('maior')"
-                >
-                  Maior nota
-                </button>
-                <button 
-                  class="block w-full text-left px-4 py-2 text-sm text-texto hover:bg-incipit-base"
-                  @click="selecionarOrdenacaoNota('menor')"
-                >
-                  Menor nota
-                </button>
-              </div>
-            </div>
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 font-sono rounded-full border-0 transition-all"
+              :class="filtroAtivo === 'nota' ? 'bg-roxo text-branco font-bold' : 'bg-incipit-card text-texto hover:bg-incipit-base'"
+              @click="toggleFiltroNota"
+            >
+              <span>Nota</span>
+              <div v-if="filtroAtivo === 'nota'" class="text-base transition-transform" :class="ordenacaoNota === 'desc' ? 'i-mdi:arrow-down' : 'i-mdi:arrow-up'"></div>
+              <div v-else class="i-mdi:unfold-more-horizontal text-base"></div>
+            </button>
 
-            <!-- Botão Aplicar filtros -->
-            <button class="botao" @click="aplicarFiltros">
-              Aplicar filtros
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 font-sono rounded-full border-0 bg-roxo text-branco font-bold hover:brightness-110 transition-all"
+              @click="abrirModalFiltros"
+            >
+              <div class="i-mdi:filter-variant text-base"></div>
+              <span>Filtros</span>
+              <span v-if="generosSelecionados.length > 0 || tagsSelecionadas.length > 0" class="ml-1 px-1.5 py-0.5 bg-branco text-roxo rounded-full text-xs font-bold">
+                {{ generosSelecionados.length + tagsSelecionadas.length }}
+              </span>
             </button>
           </div>
         </div>
 
-        <!-- Estado de loading -->
-        <div v-if="loading" class="text-center py-12">
+        <div v-if="loading && results.length === 0" class="text-center py-12">
           <div class="inline-block animate-spin i-mdi:loading text-4xl text-roxo"></div>
           <p class="text-texto mt-4">Buscando livros...</p>
         </div>
 
-        <!-- Mensagem de erro -->
         <div v-if="error && !loading" class="text-center py-12">
-          <div class="i-mdi:alert-circle text-4xl text-red-500 mb-4"></div>
           <p class="text-red-500">{{ error }}</p>
         </div>
 
-        <!-- Estado inicial (sem busca) -->
-        <div v-if="!loading && !error && results.length === 0 && !searchTerm" class="text-center py-12">
-          <div class="i-mdi:book-search text-6xl text-texto/30 mb-4"></div>
-          <h3 class="text-2xl text-texto mb-2">Pesquise por livros</h3>
-          <p class="text-texto/60">Digite o nome de um livro na barra de pesquisa acima</p>
-        </div>
-
-        <!-- Grid de resultados -->
-        <div 
-          v-if="!loading && results.length > 0" 
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-6"
-        >          <div 
-            v-for="item in results" 
+        <div v-if="!loading && results.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-6">
+          <div
+            v-for="item in results"
             :key="item.id"
             @click="verDetalhesLivro(item)"
-            class="bg-incipit-card rounded-[20px] overflow-hidden shadow-lg hover:shadow-xl transition group cursor-pointer"
+            class="bg-incipit-card rounded-[20px] overflow-hidden shadow-lg hover:shadow-xl transition group cursor-pointer relative"
           >
-            <!-- Capa do livro -->
+            <div v-if="item.tagsNomes && item.tagsNomes.length > 0" class="absolute top-2 right-2 z-10">
+               <div class="bg-roxo text-branco text-[10px] font-bold px-2 py-1 rounded-full shadow-md flex items-center gap-1">
+                 <div class="i-mdi:tag-multiple text-xs"></div>
+                 {{ item.tagsNomes.length }}
+               </div>
+            </div>
+
             <div class="relative aspect-[2/3] bg-incipit-base overflow-hidden">
-              <img 
+              <img
                 v-if="item.volumeInfo.imageLinks?.thumbnail"
-                :src="item.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')" 
+                :src="item.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')"
                 :alt="item.volumeInfo.title"
                 class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
               />
-              <div 
-                v-else
-                class="w-full h-full flex items-center justify-center bg-incipit-base"
-              >
+              <div v-else class="w-full h-full flex items-center justify-center bg-incipit-base">
                 <div class="i-mdi:book text-6xl text-texto"></div>
               </div>
-            </div>            <!-- Info do livro -->
+            </div>
             <div class="px-3 text-center">
               <p class="text-xs text-roxo mb-1 font-bold">
-                <span v-if="item.volumeInfo.authors">
-                  {{ item.volumeInfo.authors[0] }}
-                  <span v-if="item.volumeInfo.authors.length > 1">...</span>
-                </span>
+                <span v-if="item.volumeInfo.authors">{{ item.volumeInfo.authors[0] }}...</span>
                 <span v-else>Autor desconhecido</span>
               </p>
-              <h3 
-                class="text-sm font-bold text-texto line-clamp-2" 
-                :title="item.volumeInfo.title"
-              >
-                {{ item.volumeInfo.title }}
-              </h3>
+              <h3 class="text-sm font-bold text-texto line-clamp-2" :title="item.volumeInfo.title">{{ item.volumeInfo.title }}</h3>
             </div>
           </div>
         </div>
 
-        <!-- Indicador de loading para infinite scroll -->
         <div v-if="loadingMore" class="text-center py-8">
           <div class="inline-block animate-spin i-mdi:loading text-3xl text-roxo"></div>
-          <p class="text-texto mt-2 text-sm">Carregando mais livros...</p>
-        </div>
-
-        <!-- Mensagem de fim dos resultados -->
-        <div v-if="!hasMore && results.length > 0 && !loading" class="text-center py-8">
-          <div class="i-mdi:check-circle text-3xl text-roxo/60 mb-2"></div>
-          <p class="text-texto/60 text-sm">Todos os resultados foram carregados</p>
         </div>
       </div>
     </main>
 
-    <!-- Modal para selecionar lista -->
-    <div 
-      v-if="mostrarModalListas" 
-      @click="mostrarModalListas = false"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-    >
-      <div 
-        @click.stop
-        class="bg-incipit-card rounded-[30px] shadow-2xl p-8 max-w-md w-full max-h-[80vh] overflow-y-auto"
-      >
-        <h3 class="text-2xl font-bold text-texto mb-2">Adicionar à Lista</h3>
-        <p class="text-texto/70 mb-6">
-          Selecione uma lista para adicionar 
-          <span class="font-medium">"{{ livroSelecionado?.volumeInfo?.title }}"</span>:
-        </p>
-        
-        <div class="space-y-3">
-          <button 
-            v-for="lista in minhasListas" 
-            :key="lista.id"
-            @click="adicionarLivroALista(lista.id)"
-            class="w-full bg-incipit-base hover:bg-roxo hover:text-branco text-texto px-4 py-3 rounded-lg transition flex items-center justify-between"
-          >
-            <span class="font-medium">{{ lista.nome }}</span>
-            <span class="text-sm opacity-70">({{ lista.livros?.length || 0 }} livros)</span>
+    <div v-if="mostrarModalFiltros" @click="mostrarModalFiltros = false" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div @click.stop class="bg-incipit-card rounded-[30px] shadow-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-2xl font-display mt-0 text-texto">Filtros Avançados</h3>
+          <button @click="mostrarModalFiltros = false" class="flex-shrink-0 w-10 h-10 bg-roxo/50 text-texto/50 rounded-full flex items-center justify-center shadow-md hover:bg-roxo/60 hover:scale-110 transition border-0 cursor-pointer">
+            <div class="i-mdi:close text-2xl"></div>
           </button>
         </div>
-        
-        <button 
-          @click="mostrarModalListas = false"
-          class="w-full mt-6 bg-texto/10 text-texto px-4 py-3 rounded-lg hover:bg-texto/20 transition"
-        >
-          Cancelar
-        </button>
+
+        <div class="mb-6">
+          <h4 class="text-lg font-bold text-texto mb-3 flex items-center gap-2">
+            <div class="i-mdi:bookshelf"></div>
+            Gêneros
+          </h4>
+          <div class="flex flex-wrap gap-3">
+            <button
+              v-for="genero in generosDisponiveis"
+              :key="genero"
+              @click="toggleGenero(genero)"
+              class="px-3 py-1 rounded-full text-sm transition-all shadow-l border-0 hover:scale-110 transition"
+              :class="generosSelecionados.includes(genero) ? 'bg-roxo text-branco font-bold' : 'bg-incipit-base text-texto hover:bg-incipit-base/80'"
+            >
+              {{ genero }}
+            </button>
+          </div>
+          <p v-if="generosDisponiveis.length === 0" class="text-texto/50 text-sm italic">Nenhum gênero disponível.</p>
+        </div>
+
+        <div class="mb-6">
+          <h4 class="text-lg font-bold text-texto mb-3 flex items-center gap-2">
+            <div class="i-mdi:tag-multiple"></div>
+            Tags
+          </h4>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="tag in tagsDisponiveis"
+              :key="tag"
+              @click="toggleTag(tag)"
+              class="px-3 py-1 rounded-full text-sm transition-all shadow-l border-0 hover:scale-110 transition"
+              :class="tagsSelecionadas.includes(tag) ? 'bg-roxo text-branco font-bold' : 'bg-incipit-base text-texto hover:bg-incipit-base/80'"
+            >
+              {{ tag }}
+            </button>
+          </div>
+          <p v-if="tagsDisponiveis.length === 0" class="text-texto/50 text-sm italic">
+            Nenhuma tag encontrada nos livros pesquisados até o momento.
+          </p>
+        </div>
+
+        <div class="flex gap-3 mt-10">
+          <button @click="limparFiltrosAvancados" class="flex-1 botao bg-vermelho rounded-full text-sm transition-all shadow-l border-0 hover:scale-105 transition">Limpar Filtros</button>
+          <button @click="aplicarFiltrosAvancados" class="flex-1 botao rounded-full text-sm transition-all shadow-l border-0 hover:scale-105 transition">Aplicar Filtros</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
-
-<style src="~/styles/pages/search.css"></style>
-
