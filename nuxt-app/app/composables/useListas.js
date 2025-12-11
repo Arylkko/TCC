@@ -1,16 +1,32 @@
 export const useListas = () => {
   const { $pb } = useNuxtApp();
-  const { ganharXPCriarLista } = useXP();
-
-  
+  const { ganharXPCriarLista } = useXP();  
   const criarLista = async (dadosLista) => {
     try {
+      const usuarioId = dadosLista.autor || $pb.authStore.model?.id;
+      
+      if (!usuarioId) {
+        return { sucesso: false, erro: 'Usuário não autenticado' };
+      }
+
+      // Verificar quantas listas o usuário já tem
+      const listasExistentes = await $pb.collection('listas').getList(1, 1, {
+        filter: `autor = "${usuarioId}"`,
+        fields: 'id'
+      });
+
+      // Verificar limite de 50 listas
+      if (listasExistentes.totalItems >= 50) {
+        return { 
+          sucesso: false, 
+          erro: 'Você atingiu o limite máximo de 50 listas. Exclua alguma lista existente para criar uma nova.' 
+        };
+      }
+
       const lista = await $pb.collection('listas').create(dadosLista);
       
       // Ganhar XP por criar lista
-      if (dadosLista.autor) {
-        await ganharXPCriarLista(dadosLista.autor);
-      }
+      await ganharXPCriarLista(usuarioId);
       
       return { sucesso: true, dados: lista };
     } catch (error) {
@@ -135,6 +151,20 @@ export const useListas = () => {
     }
   };
 
+  // Contar listas do usuário
+  const contarListasUsuario = async (usuarioId) => {
+    try {
+      const resultado = await $pb.collection('listas').getList(1, 1, {
+        filter: `autor = "${usuarioId}"`,
+        fields: 'id'
+      });
+      return { sucesso: true, total: resultado.totalItems };
+    } catch (error) {
+      console.error('Erro ao contar listas:', error);
+      return { sucesso: false, total: 0 };
+    }
+  };
+
   return {
     criarLista,
     buscarListasUsuario,
@@ -143,6 +173,7 @@ export const useListas = () => {
     deletarLista,
     adicionarLivroNaLista,
     removerLivroDaLista,
-    buscarListas
+    buscarListas,
+    contarListasUsuario
   };
 };
