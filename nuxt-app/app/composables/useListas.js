@@ -92,8 +92,7 @@ export const useListas = () => {
     }
   };
 
- 
-  const removerLivroDaLista = async (listaId, livroId) => {
+   const removerLivroDaLista = async (listaId, livroId) => {
     try {
      
       const listaAtual = await $pb.collection('listas').getOne(listaId);
@@ -113,6 +112,29 @@ export const useListas = () => {
     }
   };
 
+  // Buscar listas (busca geral com filtro por nome/descrição)
+  const buscarListas = async (termoBusca = '') => {
+    try {
+      let filter = '';
+      
+      if (termoBusca) {
+        // Busca por nome, descrição ou autor
+        filter = `nome ~ "${termoBusca}" || descricao ~ "${termoBusca}" || autor.name ~ "${termoBusca}"`;
+      }
+
+      const listas = await $pb.collection('listas').getList(1, 100, {
+        filter,
+        expand: 'autor,livros',
+        sort: '-created'
+      });
+
+      return { sucesso: true, dados: listas.items };
+    } catch (error) {
+      console.error('Erro ao buscar listas:', error);
+      return { sucesso: false, erro: error.message || 'Erro ao buscar listas' };
+    }
+  };
+
   return {
     criarLista,
     buscarListasUsuario,
@@ -120,6 +142,7 @@ export const useListas = () => {
     atualizarLista,
     deletarLista,
     adicionarLivroNaLista,
-    removerLivroDaLista
+    removerLivroDaLista,
+    buscarListas
   };
 };

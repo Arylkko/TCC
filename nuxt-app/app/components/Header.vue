@@ -76,12 +76,11 @@ const props = defineProps({
     type: String,
     default: "book",
     validator: (value) => ["book", "search", "auth"].includes(value),
-  },
-  // Nova prop para identificar o contexto de busca
+  },  // Nova prop para identificar o contexto de busca
   searchContext: {
     type: String,
-    default: "livros", // 'livros' ou 'comunidades'
-    validator: (value) => ["livros", "comunidades"].includes(value),
+    default: "livros", // 'livros', 'comunidades' ou 'listas'
+    validator: (value) => ["livros", "comunidades", "listas"].includes(value),
   },
 });
 
@@ -99,9 +98,12 @@ const isAuthenticated = computed(() => $pb.authStore.isValid);
 
 // Placeholder dinâmico baseado no contexto
 const searchPlaceholder = computed(() => {
-  return props.searchContext === "comunidades" 
-    ? "Pesquisar comunidades..." 
-    : "Pesquisar livros...";
+  if (props.searchContext === "comunidades") {
+    return "Pesquisar comunidades...";
+  } else if (props.searchContext === "listas") {
+    return "Pesquisar listas...";
+  }
+  return "Pesquisar livros...";
 });
 
 // Sincroniza prop com estado local
@@ -139,6 +141,8 @@ function handleSearch() {
   if (props.variant === "book") {
     if (props.searchContext === "comunidades") {
       router.push(`/comunidades?q=${encodeURIComponent(localSearchTerm.value)}`);
+    } else if (props.searchContext === "listas") {
+      router.push(`/listas?q=${encodeURIComponent(localSearchTerm.value)}`);
     } else {
       router.push(`/search?q=${encodeURIComponent(localSearchTerm.value)}`);
     }
