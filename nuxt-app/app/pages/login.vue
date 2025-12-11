@@ -17,7 +17,7 @@ async function login() {
     );
     localStorage.setItem('pb_jwt', authData.token); 
     localStorage.setItem('userName', authData.record.name);
-    router.push('/search');
+    router.push('/');
   } catch (error) {
     errorMsg.value = 'Email ou senha inválidos.';
     console.error("Erro no login:", error);

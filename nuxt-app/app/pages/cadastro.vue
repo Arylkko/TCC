@@ -33,17 +33,21 @@ async function createUser() {
     errorMsg.value = 'A senha deve ter pelo menos 8 caracteres.';
     return;
   }
-
   try {
     const { name, email, password } = newUser.value;
     const tokenKey = generateTokenKey(50); 
-    await $pb.collection('users').create({ 
+    
+    // Criar usuário
+    const novoUsuario = await $pb.collection('users').create({ 
       name, 
       email, 
       password, 
       passwordConfirm: password,
       tokenKey 
     });
+    
+    // Fazer login automático
+    await $pb.collection('users').authWithPassword(email, password);
     
     successMsg.value = 'Usuário criado com sucesso! Redirecionando...';
     
@@ -53,10 +57,14 @@ async function createUser() {
     newUser.value.password = '';
     newUser.value.confirmPassword = '';
     
-    // Redirecionar após 2 segundos
+    // Redirecionar após 1.5 segundos baseado na escolha
     setTimeout(() => {
-      router.push('/login');
-    }, 2000);
+      if (isNewReader.value) {
+        router.push('/uno'); // Leitor novato
+      } else {
+        router.push('/'); // Home
+      }
+    }, 1500);
   } catch (error) {
     errorMsg.value = 'Erro ao criar usuário. Verifique os dados e tente novamente.';
     console.error('Erro ao criar usuário:', error);
