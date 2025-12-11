@@ -210,6 +210,7 @@ export const useComunidades = () => {
       if (!usuarioId) {
         return { sucesso: false, erro: 'Usuário não autenticado' };
       }      const comentario = await $pb.collection('comentario').create({
+        titulo: '',
         conteudo,
         autor: usuarioId,
         comunidade: comunidadeId,

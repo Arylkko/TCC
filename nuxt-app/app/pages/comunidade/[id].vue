@@ -27,6 +27,7 @@ const livroSelecionado = ref(null);
 
 // Comentários
 const comentarios = ref([]);
+const tituloComentario = ref('');
 const novoComentario = ref('');
 const enviandoComentario = ref(false);
 const comentarioTemSpoiler = ref(false);
@@ -51,6 +52,7 @@ const { buscarDadosLivroAPI } = useLivros();
 const { toggleLikeComentario, usuarioDeulLikeComentario } = useLikes();
 const { deletarComentario } = useComentarios();
 const { verificarConquistaComentador, verificarConquistaMembroGalera } = useConquistas();
+const { ganharXPComentario } = useXP();
 
 const usuarioAtual = computed(() => $pb.authStore.model);
 const souLider = computed(() => ehLider(comunidade.value));
@@ -289,22 +291,33 @@ async function enviarComentario() {
   if (!novoComentario.value.trim()) return;
 
   enviandoComentario.value = true;
-  const resultado = await criarComentario(comunidadeId, novoComentario.value, comentarioTemSpoiler.value);
   
-  if (resultado.sucesso) {
+  // Criar comentário com título
+  const comentario = await $pb.collection('comentario').create({
+    titulo: tituloComentario.value || '',
+    conteudo: novoComentario.value,
+    autor: $pb.authStore.model.id,
+    comunidade: comunidadeId,
+    spoiler: comentarioTemSpoiler.value
+  });
+  
+  if (comentario) {
+    tituloComentario.value = '';
     novoComentario.value = '';
     comentarioTemSpoiler.value = false;
     await carregarComentarios();
     
-    // Verificar conquista "Comentador"
-    if (resultado.conquistaObtida) {
-      conquistaObtida.value = resultado.conquistaObtida;
+    // Ganhar XP e verificar conquista
+    await ganharXPComentario($pb.authStore.model.id);
+    const resultadoConquista = await verificarConquistaComentador($pb.authStore.model.id);
+    if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
+      conquistaObtida.value = resultadoConquista.conquista;
       setTimeout(() => {
         conquistaObtida.value = null;
       }, 5500);
     }
   } else {
-    alert('Erro ao enviar comentário: ' + resultado.erro);
+    alert('Erro ao enviar comentário');
   }
   
   enviandoComentario.value = false;
@@ -481,6 +494,11 @@ onMounted(async () => {
                      <div v-else class="w-full h-full bg-roxo"></div>
                  </div>
                  <div class="flex-1">
+                     <input 
+                        v-model="tituloComentario"
+                        placeholder="Título (opcional)" 
+                        class="w-full bg-incipit-fundo box-border rounded-xl p-3 border-none focus:ring-2 focus:ring-roxo outline-none text-sm mb-2 font-bold"
+                     />
                      <textarea 
                         v-model="novoComentario"
                         placeholder="Escreva algo..." 
@@ -541,9 +559,7 @@ onMounted(async () => {
                   >
                     <div
                       class="absolute top-6 -left-2 w-4 h-4 bg-incipit-card transform rotate-45"
-                    ></div>
-
-                    <button
+                    ></div>                    <button
                       v-if="comentario.expand?.autor?.id === $pb.authStore.model?.id"
                       @click.stop="removerComentario(comentario.id, comentario.expand?.autor?.id)"
                       class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border-0 cursor-pointer"
@@ -555,6 +571,10 @@ onMounted(async () => {
                     <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
                       {{ comentario.expand?.autor?.name || "Leitor" }} diz:
                     </h4>
+                    
+                    <h3 v-if="comentario.titulo" class="font-bold text-roxo text-lg mb-2 mt-1">
+                      {{ comentario.titulo }}
+                    </h3>
                     
                     <!-- Conteúdo com/sem spoiler -->
                     <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)" 
