@@ -71,12 +71,13 @@
               </div>
             </section>
 
+            <!-- ✨ SEÇÃO ATUALIZADA: Recomendações baseadas no último livro com nota > 4 -->
             <section v-if="recomendacoes.length > 0">
               <div class="w-full max-w-screen-lg">
                 <h2
                   class="bg-incipit-card text-texto font-display text-center mt-0 rounded-[30px] justify-self-start px-15 shadow-lg"
                 >
-                  Porque você gostou de {{ generoDestaque }}
+                  Porque você gostou de {{ livroReferenciaNome }}
                 </h2>
               </div>
               <div class="bg-incipit-card rounded-[30px] p-6 shadow-xl">
@@ -307,7 +308,7 @@ const router = useRouter();
 // Composables
 const {
   buscarLivrosLendo,
-  buscarRecomendacoesPorGenero,
+  buscarRecomendacoesPorLivro, // ✨ Função atualizada
   buscarLivrosPopulares,
   buscarListasRecentes,
   buscarComunidadesPopulares,
@@ -322,7 +323,7 @@ const userId = ref("");
 // Dados da página
 const livrosLendo = ref([]);
 const recomendacoes = ref([]);
-const generoDestaque = ref("");
+const livroReferenciaNome = ref(""); // ✨ Nome do livro de referência
 const livrosPopulares = ref([]);
 const listasPopulares = ref([]);
 const comunidadesPopulares = ref([]);
@@ -362,13 +363,13 @@ onMounted(async () => {
     // Carregar todos os dados em paralelo
     const [
       resultLendo,
-      resultRecomendacoes,
+      resultRecomendacoes, // ✨ Agora retorna { dados, livroReferencia }
       resultPopulares,
       resultListas,
       resultComunidades,
     ] = await Promise.all([
       buscarLivrosLendo(userId.value),
-      buscarRecomendacoesPorGenero(userId.value),
+      buscarRecomendacoesPorLivro(userId.value), // ✨ Função atualizada
       buscarLivrosPopulares(),
       buscarListasRecentes(),
       buscarComunidadesPopulares(),
@@ -379,13 +380,13 @@ onMounted(async () => {
       livrosLendo.value = resultLendo.dados;
     }
 
+    // ✨ Processar recomendações e livro de referência
     if (resultRecomendacoes.sucesso) {
       recomendacoes.value = resultRecomendacoes.dados;
-      if (recomendacoes.value.length > 0 && recomendacoes.value[0].genero) {
-        const genero = Array.isArray(recomendacoes.value[0].genero)
-          ? recomendacoes.value[0].genero[0]
-          : recomendacoes.value[0].genero;
-        generoDestaque.value = genero;
+      
+      // Pegar o nome do livro de referência
+      if (resultRecomendacoes.livroReferencia) {
+        livroReferenciaNome.value = resultRecomendacoes.livroReferencia.nome;
       }
     }
 
