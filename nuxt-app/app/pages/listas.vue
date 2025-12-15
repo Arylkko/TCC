@@ -1,18 +1,18 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
-import { useComunidades } from "~/composables/useComunidades";
+import { useListas } from "~/composables/useListas";
 
 const { $pb } = useNuxtApp();
 const router = useRouter();
 const route = useRoute();
 
-const comunidades = ref([]);
+const listas = ref([]);
 const loading = ref(true);
 const buscaTexto = ref("");
 const filtroAtivo = ref("");
 const ordenacaoData = ref("desc");
 
-const { buscarComunidades } = useComunidades();
+const { buscarListas } = useListas();
 
 // Watch para sincronizar com a URL (similar à página de busca de livros)
 watch(
@@ -22,7 +22,7 @@ watch(
       buscaTexto.value = newQ || "";
     }
     if (newQ && !loading.value) {
-      carregarComunidades();
+      carregarListas();
     }
   },
   { immediate: true }
@@ -40,12 +40,12 @@ watch(buscaTexto, (newTerm) => {
   }
 });
 
-async function carregarComunidades() {
+async function carregarListas() {
   loading.value = true;
-  const resultado = await buscarComunidades(buscaTexto.value);
+  const resultado = await buscarListas(buscaTexto.value);
 
   if (resultado.sucesso) {
-    comunidades.value = resultado.dados;
+    listas.value = resultado.dados;
     aplicarOrdenacao();
   }
 
@@ -53,7 +53,7 @@ async function carregarComunidades() {
 }
 
 async function buscar() {
-  await carregarComunidades();
+  await carregarListas();
 }
 
 function toggleFiltroData() {
@@ -67,9 +67,9 @@ function toggleFiltroData() {
 }
 
 function aplicarOrdenacao() {
-  if (comunidades.value.length === 0 || filtroAtivo.value !== "data") return;
+  if (listas.value.length === 0 || filtroAtivo.value !== "data") return;
 
-  comunidades.value.sort((a, b) => {
+  listas.value.sort((a, b) => {
     const dataA = a.created || (ordenacaoData.value === "desc" ? "0000" : "9999");
     const dataB = b.created || (ordenacaoData.value === "desc" ? "0000" : "9999");
     return ordenacaoData.value === "desc" ? dataB.localeCompare(dataA) : dataA.localeCompare(dataB);
@@ -77,9 +77,9 @@ function aplicarOrdenacao() {
 }
 
 onMounted(() => {
-  // Se não há query na URL, carrega todas as comunidades
+  // Se não há query na URL, carrega todas as listas
   if (!route.query.q) {
-    carregarComunidades();
+    carregarListas();
   }
 });
 </script>
@@ -88,7 +88,7 @@ onMounted(() => {
   <div class="min-h-screen bg-incipit-fundo overflow-hidden relative font-sono">
     <Header 
       :show-search="true" 
-      search-context="comunidades"
+      search-context="listas"
       :expandable="true"
       :loading="loading"
       v-model:search-term="buscaTexto"
@@ -102,9 +102,11 @@ onMounted(() => {
         <!-- Título sempre visível -->
         <div class="text-center mb-6">
           <h2 class="text-3xl text-texto mb-4">
-            <span class="font-bold">{{ comunidades.length }}</span>
-            <span class="font-normal"> {{ comunidades.length === 1 ? ' comunidade encontrada' : ' comunidades encontradas' }}</span>
-          </h2>          <!-- Filtros superiores -->
+            <span class="font-bold">{{ listas.length }}</span>
+            <span class="font-normal"> {{ listas.length === 1 ? ' lista encontrada' : ' listas encontradas' }}</span>
+          </h2>
+
+          <!-- Filtros superiores -->
           <div class="flex items-center justify-center gap-3 mb-3">
             <span class="text-texto text-sm">Pesquisar por:</span>
             <button
@@ -115,14 +117,14 @@ onMounted(() => {
             </button>
 
             <button
-              class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
+              class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
+              @click="router.push('/comunidades')"
             >
               Comunidades
             </button>
 
             <button
-              class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
-              @click="router.push('/listas')"
+              class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono font-bold text-texto"
             >
               Listas
             </button>
@@ -138,14 +140,12 @@ onMounted(() => {
               <span>Data</span>
               <div v-if="filtroAtivo === 'data'" class="text-base transition-transform" :class="ordenacaoData === 'desc' ? 'i-mdi:arrow-down' : 'i-mdi:arrow-up'"></div>
               <div v-else class="i-mdi:unfold-more-horizontal text-base"></div>
-            </button>
-
-            <button 
+            </button>            <button 
               v-if="$pb.authStore.model" 
               class="botao"
-              @click="router.push('/criar-comunidade')"
+              @click="router.push('/Criarlistas')"
             >
-              Criar comunidade
+              Criar lista
             </button>
           </div>
         </div>
@@ -153,57 +153,58 @@ onMounted(() => {
         <!-- Estado de loading -->
         <div v-if="loading" class="text-center py-12">
           <div class="inline-block animate-spin i-mdi:loading text-4xl text-roxo"></div>
-          <p class="text-texto mt-4">Buscando Comunidades...</p>
+          <p class="text-texto mt-4">Buscando Listas...</p>
         </div>
 
         <!-- Nenhum resultado -->
-        <div v-else-if="comunidades.length === 0" class="text-center py-12">
+        <div v-else-if="listas.length === 0" class="text-center py-12">
           <div class="i-mdi:image-search text-6xl text-texto/30 mb-4"></div>
-          <p class="text-texto text-xl mb-2">Nenhuma comunidade encontrada</p>
+          <p class="text-texto text-xl mb-2">Nenhuma lista encontrada</p>
           <p class="text-texto/60">
-            <span v-if="buscaTexto">Tente buscar por outro termo ou </span>
-            <button 
+            <span v-if="buscaTexto">Tente buscar por outro termo ou </span>            <button 
               v-if="$pb.authStore.model"
-              @click="router.push('/criar-comunidade')"
+              @click="router.push('/Criarlistas')"
               class="botao"
             >
-              crie uma nova comunidade
+              crie uma nova lista
             </button>
           </p>
         </div>
 
-        <!-- Grid de Comunidades -->
+        <!-- Grid de Listas -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div 
-            v-for="comunidade in comunidades" 
-            :key="comunidade.id"
+            v-for="lista in listas" 
+            :key="lista.id"
             class="bg-incipit-card rounded-[30px] shadow-xl p-8 text-center hover:shadow-2xl transition cursor-pointer"
-            @click="router.push(`/comunidade/${comunidade.id}`)"
+            @click="router.push(`/lista/${lista.id}`)"
           >
-            <!-- Avatar da Comunidade -->
-            <div class="w-48 h-48 mx-auto mb-6 rounded-full border-4 border-roxo bg-incipit-base overflow-hidden">
-              <img 
-                v-if="comunidade.imagem_comunidade"
-                :src="$pb.files.getURL(comunidade, comunidade.imagem_comunidade)"
-                :alt="comunidade.nome"
-                class="w-full h-full object-cover"
-              />
-              <div v-else class="w-full h-full flex items-center justify-center">
-                <div class="i-mdi:account-group text-8xl text-roxo"></div>
-              </div>
+            <!-- Ícone da Lista -->
+            <div class="w-48 h-48 mx-auto mb-6 rounded-full border-4 border-roxo bg-incipit-base overflow-hidden flex items-center justify-center">
+              <div class="i-mdi:format-list-bulleted-square text-8xl text-roxo"></div>
             </div>
 
-            <!-- Nome da Comunidade -->
+            <!-- Nome da Lista -->
             <h2 class="text-2xl font-bold text-texto mb-2 break-words">
-              {{ comunidade.nome }}
+              {{ lista.nome }}
             </h2>
 
+            <!-- Descrição -->
+            <p v-if="lista.descricao" class="text-texto/70 text-sm mb-2 line-clamp-2">
+              {{ lista.descricao }}
+            </p>
+
             <!-- Criador -->
-            <p class="text-texto text-sm mb-6">
+            <p class="text-texto text-sm mb-2">
               Criado por
               <span class="text-roxo font-medium">
-                {{ comunidade.expand?.lider?.name || "Desconhecido" }}
+                {{ lista.expand?.autor?.name || "Desconhecido" }}
               </span>
+            </p>
+
+            <!-- Quantidade de livros -->
+            <p class="text-texto/60 text-xs mb-6">
+              {{ lista.livros?.length || 0 }} {{ lista.livros?.length === 1 ? 'livro' : 'livros' }}
             </p>
 
             <!-- Botão Acessar -->

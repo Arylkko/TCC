@@ -545,9 +545,7 @@ async function adicionarLivroALista(listaId) {
               <span class="font-display"> resultados para </span>
               <span class="font-display text-roxo">"{{ searchTerm }}"</span>
             </span>
-          </h2>
-
-          <!-- Filtros superiores -->
+          </h2>          <!-- Filtros superiores -->
           <div class="flex items-center justify-center gap-3 mb-3">
             <span class="text-texto text-sm">Pesquisar por:</span>
               <button 
@@ -562,6 +560,13 @@ async function adicionarLivroALista(listaId) {
                 @click="navigateTo('/comunidades')"
               >
                 Comunidades
+              </button>
+
+              <button 
+                class="inline-flex bg-incipit-card rounded-lg p-1 gap-1 border-0 font-sono text-texto"
+                @click="navigateTo('/listas')"
+              >
+                Listas
               </button>
             </div>
             

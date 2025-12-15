@@ -31,7 +31,7 @@ export const useXP = () => {
         XP: novoXP
       });
 
-      console.log(`✨ +${quantidade} XP | Total: ${novoXP}`);
+      console.log(` +${quantidade} XP | Total: ${novoXP}`);
       return { sucesso: true, xpAnterior: xpAtual, xpNovo: novoXP, ganho: quantidade };
     } catch (error) {
       console.error('Erro ao adicionar XP:', error);

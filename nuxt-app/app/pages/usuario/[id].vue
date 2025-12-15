@@ -339,13 +339,23 @@
                   </div>
                 </div>
               </div>
-              <p v-else class="text-texto/60 text-center">Nenhuma comunidade ainda</p>
-              <div class="flex justify-center items-center mt-6">
+              <p v-else class="text-texto/60 text-center">Nenhuma comunidade ainda</p>              <div class="flex justify-center items-center mt-6">
                 <button v-if="isProprioUsuario" @click="criarNovaComunidade" class="botao">
                   + Nova Comunidade
                 </button>
               </div>
             </section>
+          </div>
+
+          <!-- Botão de Logout -->
+          <div v-if="isProprioUsuario" class="flex justify-center">
+            <button 
+              @click="fazerLogout"
+              class="bg-red-500 text-branco py-3 px-8 rounded-full border-0 hover:bg-red-600 transition cursor-pointer font-medium shadow-lg flex items-center gap-2"
+            >
+              <div class="i-mdi:logout text-xl"></div>
+              <span>Sair da Conta</span>
+            </button>
           </div>
         </div>
       </div>
@@ -577,6 +587,21 @@ function criarNovaLista() {
 
 function criarNovaComunidade() {
   router.push("/criarcomunidade");
+}
+
+// Função de Logout
+function fazerLogout() {
+  if (confirm('Tem certeza que deseja sair da sua conta?')) {
+    // Limpar autenticação do PocketBase
+    $pb.authStore.clear();
+    
+    // Limpar localStorage
+    localStorage.removeItem('pb_jwt');
+    localStorage.removeItem('userName');
+    
+    // Redirecionar para login
+    router.push('/login');
+  }
 }
 </script>
 

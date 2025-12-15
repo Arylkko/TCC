@@ -198,8 +198,7 @@
                   <img v-if="getAvatarUsuario(usuarioAtual)" :src="getAvatarUsuario(usuarioAtual)" class="w-full h-full object-cover" />
                   <div v-else class="w-full h-full bg-roxo"></div>
                 </div>
-                
-                <div class="flex-1">
+                  <div class="flex-1">
                   <div class="flex items-center gap-2 mb-2">
                     <span class="text-sm text-texto/80">Nota:</span>
        <div class="rating-stars-input">
@@ -218,6 +217,12 @@
                 </div>
                   </div>
 
+                  <input 
+                    v-model="tituloResenha"
+                    placeholder="Título da resenha (opcional)" 
+                    class="w-full bg-incipit-fundo box-border rounded-xl p-3 border-none focus:ring-2 focus:ring-roxo outline-none text-sm mb-2 font-bold"
+                  />
+                  
                   <textarea 
                     v-model="resenhaTexto"
                     placeholder="Escreva sua resenha (opcional)..." 
@@ -255,11 +260,11 @@
               :key="nota.id"
               @click="ExpandirResenha(nota)"
               class="mb-4"
-            >
-              <div class="bg-incipit-card rounded-[30px] shadow-lg p-6 cursor-pointer hover:shadow-xl transition">
+            >              <div class="bg-incipit-card rounded-[30px] shadow-lg p-6 cursor-pointer hover:shadow-xl transition">
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
-                    <h3 class="text-lg font-semibold text-texto m-0">Resenha</h3>
+                    <h3 v-if="!nota.titulo" class="text-lg font-semibold text-texto m-0">Resenha</h3>
+                    <h3 v-else class="text-lg font-semibold text-roxo m-0">{{ nota.titulo }}</h3>
                                    <div class="flex gap-1">
                       <div
                         v-for="n in 5"
@@ -357,13 +362,17 @@
                 Comentários
                 <span class="count">({{ comentarios.length }})</span>
               </h2>              
-              
-              <div v-if="isAuthenticated" class="bg-[#e6decf] rounded-[30px] p-4 shadow-sm flex gap-4 items-start mb-4">
+                <div v-if="isAuthenticated" class="bg-[#e6decf] rounded-[30px] p-4 shadow-sm flex gap-4 items-start mb-4">
                 <div class="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
                   <img v-if="getAvatarUsuario(usuarioAtual)" :src="getAvatarUsuario(usuarioAtual)" class="w-full h-full object-cover" />
                   <div v-else class="w-full h-full bg-roxo"></div>
                 </div>
                 <div class="flex-1">
+                  <input 
+                    v-model="tituloComentario"
+                    placeholder="Título (opcional)" 
+                    class="w-full bg-incipit-fundo box-border rounded-xl p-3 border-none focus:ring-2 focus:ring-roxo outline-none text-sm mb-2 font-bold"
+                  />
                   <textarea 
                     v-model="novoComentario"
                     placeholder="Escreva algo..."   
@@ -427,14 +436,16 @@
                       title="Deletar comentário"
                     >
                       <div class="i-mdi:close text-sm"></div>
-                    </button>
-
-                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
+                    </button>                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
                       {{ comentario.expand?.autor?.name || "Leitor" }} diz:
                     </h4>
                     
+                    <h3 v-if="comentario.titulo" class="font-bold text-roxo text-lg mb-2 mt-1">
+                      {{ comentario.titulo }}
+                    </h3>
+                    
                     <!-- Conteúdo com/sem spoiler -->
-                    <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)" 
+                    <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)"
                          @click.stop="toggleSpoiler(comentario.id)"
                          class="cursor-pointer text-[#3d3131]/60 italic text-sm py-2 mb-4">
                       <span class="hover:text-[#3d3131] transition">
@@ -524,6 +535,7 @@ const tagsLivro = ref([]);
 const statusAtual = ref("");
 
 // Reviews
+const tituloResenha = ref("");
 const avaliacaoNova = ref(0);
 const resenhaTexto = ref("");
 const minhaNotaExistente = ref(null);
@@ -531,6 +543,7 @@ const resenhaTemSpoiler = ref(false);
 const resenhasReveladas = ref(new Set());
 
 // Comments
+const tituloComentario = ref("");
 const novoComentario = ref("");
 const comentarioTemSpoiler = ref(false);
 const comentariosRevelados = ref(new Set());
@@ -670,6 +683,7 @@ async function carregarMinhaAvaliacao() {
   const resultado = await buscarNotaUsuario(livro.value.id, $pb.authStore.model.id);
   if (resultado.sucesso) {
     minhaNotaExistente.value = resultado.dados;
+    tituloResenha.value = resultado.dados.titulo || "";
     avaliacaoNova.value = resultado.dados.avaliacao;
     resenhaTexto.value = resultado.dados.resenha || "";
     resenhaTemSpoiler.value = resultado.dados.spoiler || false;
@@ -683,6 +697,7 @@ async function enviarComentario() {
   try {
     enviandoComentario.value = true;
     const dados = {
+      titulo: tituloComentario.value || '',
       conteudo: novoComentario.value.trim(),
       autor: $pb.authStore.model.id,
       livro: livro.value.id,
@@ -690,6 +705,7 @@ async function enviarComentario() {
     };
 
     const resultado = await $pb.collection('comentario').create(dados);    if (resultado) {
+      tituloComentario.value = '';
       novoComentario.value = '';
       comentarioTemSpoiler.value = false;
       await carregarComentarios();
@@ -783,6 +799,7 @@ async function enviarAvaliacao() {
   if (avaliacaoNova.value === 0) return;
 
   const dados = {
+    titulo: tituloResenha.value || '',
     livro: livro.value.id,
     autor: $pb.authStore.model.id,
     avaliacao: avaliacaoNova.value,

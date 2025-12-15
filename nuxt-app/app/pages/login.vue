@@ -17,7 +17,7 @@ async function login() {
     );
     localStorage.setItem('pb_jwt', authData.token); 
     localStorage.setItem('userName', authData.record.name);
-    router.push('/search');
+    router.push('/');
   } catch (error) {
     errorMsg.value = 'Email ou senha inválidos.';
     console.error("Erro no login:", error);
@@ -30,9 +30,9 @@ async function login() {
     <!-- Header Component -->
     <Header variant="auth" />
 
-    <!-- Background Pattern (opcional - você pode adicionar SVG de livros aqui) -->
+   
     <div class="absolute inset-0 opacity-10 pointer-events-none">
-      <!-- Padrão de livros pode ser adicionado aqui com CSS ou SVG -->
+      
     </div>
 
     <!-- Main Content -->
