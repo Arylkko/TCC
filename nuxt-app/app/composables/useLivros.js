@@ -22,12 +22,12 @@ export const useLivros = () => {
       return { sucesso: false, erro: 'ISBN não fornecido' };
     }
 
-    // ✅ VALIDAÇÃO: Verificar se é um ISBN válido (apenas números e 10 ou 13 dígitos)
+
     const isbnLimpo = isbn.toString().replace(/[-\s]/g, '');
     const isISBNValido = /^[0-9]{10}$|^[0-9]{13}$/.test(isbnLimpo);
     
     if (!isISBNValido) {
-      console.warn(`⚠️ ISBN inválido ignorado: ${isbn}`);
+      console.warn(` ISBN inválido ignorado: ${isbn}`);
       return { 
         sucesso: false, 
         erro: 'ISBN inválido',
@@ -44,18 +44,18 @@ export const useLivros = () => {
       };
     }
 
-    // ✅ VERIFICAR CACHE PRIMEIRO
+   
     const agora = Date.now();
     const cached = cacheGoogleBooks.get(isbn);
     
     if (cached && (agora - cached.timestamp) < CACHE_DURATION) {
-      console.log(`📦 Cache hit para ISBN: ${isbn}`);
+      console.log(`Cache hit para ISBN: ${isbn}`);
       return cached.dados;
     }
 
-    // ✅ BUSCAR NA API SE NÃO ESTIVER NO CACHE
+    
     try {
-      console.log(`🌐 Buscando na API Google Books: ${isbn}`);
+      console.log(`Buscando na API Google Books: ${isbn}`);
       
       const apiKey = config.public.googleBooksApiKey;
       const url = apiKey 
@@ -87,7 +87,7 @@ export const useLivros = () => {
           }
         };
 
-        // ✅ SALVAR NO CACHE
+       
         cacheGoogleBooks.set(isbn, {
           dados: resultado,
           timestamp: agora
@@ -117,7 +117,7 @@ export const useLivros = () => {
     } catch (error) {
       console.error('Erro ao buscar dados do livro na API:', error);
       
-      // ✅ CACHEAR ERRO TEMPORARIAMENTE (1 minuto apenas)
+      
       const resultadoErro = { 
         sucesso: false, 
         erro: 'Erro ao conectar com a API' 
@@ -125,7 +125,7 @@ export const useLivros = () => {
       
       cacheGoogleBooks.set(isbn, {
         dados: resultadoErro,
-        timestamp: agora - CACHE_DURATION + 60000 // Expira em 1 minuto
+        timestamp: agora - CACHE_DURATION + 60000 
       });
       
       return resultadoErro;
@@ -173,13 +173,13 @@ export const useLivros = () => {
     }
   };
 
-  // ✅ FUNÇÃO PARA LIMPAR CACHE MANUALMENTE (útil para debugging)
+ 
   const limparCache = () => {
     cacheGoogleBooks.clear();
-    console.log('🗑️ Cache do Google Books limpo');
+    console.log(' Cache do Google Books limpo');
   };
 
-  // ✅ FUNÇÃO PARA VER ESTATÍSTICAS DO CACHE
+
   const estatisticasCache = () => {
     return {
       totalItens: cacheGoogleBooks.size,
