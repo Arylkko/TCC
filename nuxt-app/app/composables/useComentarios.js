@@ -1,10 +1,10 @@
-// composables/useComentarios.js
+
 
 export const useComentarios = () => {
   const { $pb } = useNuxtApp();
   const { ganharXPReceberComentario } = useXP(); 
 
-  // Busca todos os comentários de um livro (apenas comentários principais, sem respostas)
+  // Busca todos os comentários de um livro
   const buscarComentariosLivro = async (livroId) => {
     try {
       const comentarios = await $pb.collection('comentario').getList(1, 50, {
@@ -27,7 +27,7 @@ export const useComentarios = () => {
   // Busca um comentário específico com suas respostas
   const buscarComentarioPorId = async (comentarioId) => {
     try {
-      // Inclui 'comunidade' no expand
+      
       const comentario = await $pb.collection('comentario').getOne(comentarioId, {
         expand: 'autor,livro,comunidade', 
         requestKey: `comentario_${comentarioId}`
@@ -54,14 +54,14 @@ export const useComentarios = () => {
     }
   };
 
-  // Busca comentários com suas respostas (para listagem de tópicos principais)
+  // Busca comentários com suas respostas 
   const buscarComentariosComRespostas = async (origemId, tipoOrigem = 'livro') => {
     try {
       const filterField = tipoOrigem === 'livro' ? 'livro' : 'comunidade';
       
-      // Filtra APENAS COMENTÁRIOS PRINCIPAIS (sem pai)
+      
       const comentarios = await $pb.collection('comentario').getList(1, 50, {
-        filter: `${filterField} = "${origemId}" && comentario_pai = null`, // null ao invés de ""
+        filter: `${filterField} = "${origemId}" && comentario_pai = null`,
         expand: 'autor',
         sort: '-created',
         $autoCancel: false
@@ -94,7 +94,7 @@ export const useComentarios = () => {
     }
   };
 
-  // Cria um novo comentário (para o comentário principal)
+  // Cria um novo comentário 
   const criarComentario = async (dados) => {
     try {
       const novoComentario = await $pb.collection('comentario').create(dados);
@@ -105,10 +105,10 @@ export const useComentarios = () => {
     }
   };
 
-  // Responde a um comentário (cria um comentário filho)
+  // Responde a um comentário 
   const responderComentario = async (comentarioPaiId, origemId, conteudo, autorId, tipoOrigem) => {
     try {
-      // Estrutura base do comentário
+     
       const dadosCriacao = {
         autor: autorId,
         conteudo: conteudo,
@@ -120,11 +120,9 @@ export const useComentarios = () => {
       // Define o campo de origem correto (livro ou comunidade)
       if (tipoOrigem === 'livro') {
         dadosCriacao.livro = origemId;
-        // Garante que comunidade está vazio/null
         dadosCriacao.comunidade = "";
       } else if (tipoOrigem === 'comunidade') {
         dadosCriacao.comunidade = origemId;
-        // Garante que livro está vazio/null
         dadosCriacao.livro = "";
       } else {
         throw new Error("Tipo de origem inválido: deve ser 'livro' ou 'comunidade'.");

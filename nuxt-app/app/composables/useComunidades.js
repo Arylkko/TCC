@@ -40,7 +40,7 @@ export const useComunidades = () => {
         return { sucesso: false, erro: 'Usuário não autenticado' };
       }
 
-      // Usar FormData para upload de arquivo
+      
       const formData = new FormData();
       formData.append('nome', dados.nome);
       formData.append('descricao', dados.descricao || '');
@@ -53,7 +53,7 @@ export const useComunidades = () => {
 
       const comunidade = await $pb.collection('comunidade').create(formData);
       
-      // Ganhar XP por criar comunidade
+      
       await ganharXPCriarComunidade(usuarioId);
       
       return { sucesso: true, dados: comunidade };
@@ -61,7 +61,7 @@ export const useComunidades = () => {
       console.error('Erro ao criar comunidade:', error);
       return { sucesso: false, erro: error.message };
     }
-  };  // Entrar na comunidade
+  };  
   const entrarNaComunidade = async (comunidadeId) => {
     try {
       const usuarioId = $pb.authStore.model?.id;
@@ -79,14 +79,14 @@ export const useComunidades = () => {
       
       if (comunidade.membros && comunidade.membros.includes(usuarioId)) {
         return { sucesso: false, erro: 'Você já é membro desta comunidade' };
-      }      // Usar operador += para adicionar membro (sintaxe do PocketBase para relações)
+      }      
       const atualizado = await $pb.collection('comunidade').update(comunidadeId, {
-        'membros+': usuarioId  // Usar += para adicionar sem remover os existentes
+        'membros+': usuarioId 
       }, {
         $autoCancel: false
       });
 
-      // Verificar conquista "Membro da Galera"
+      // verificar conquista 
       const resultadoConquista = await verificarConquistaMembroGalera(usuarioId);
       if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
         return { sucesso: true, dados: atualizado, conquistaObtida: resultadoConquista.conquista };
