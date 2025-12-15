@@ -649,7 +649,7 @@ onMounted(async () => {
                          <button 
                             v-if="souLider" 
                             @click="mostrarModalLivro = true"
-                            class="bg-roxo text-white px-4 py-2 rounded-full text-sm hover:opacity-90 transition block mx-auto mt-2"
+                            class="botao block mx-auto mt-2"
                         >
                              Trocar Livro
                          </button>
@@ -677,7 +677,7 @@ onMounted(async () => {
                 Membros
               </h2>
 
-                <div class="bg-incipit-card rounded-[30px] p-6 shadow-md h-fit max-h-[400px] overflow-y-auto">
+                <div class="bg-incipit-card rounded-[30px] p-6 shadow-md h-fit max-h-[400px] overflow-y-auto mb-10">
                     <div v-if="comunidade.expand?.membros" class="space-y-4">
                         <div v-for="membro in comunidade.expand.membros" :key="membro.id" class="flex items-center gap-3">
                             <!-- foto -->
@@ -751,7 +751,7 @@ onMounted(async () => {
             </div>
             <button 
               @click="limparSelecao"
-              class="text-red-500 hover:text-red-700"
+              class="text-red-500/90 border-0 bg-red-500/10 rounded-full hover:text-red-700"
             >
               <div class="i-mdi:close text-2xl"></div>
             </button>
@@ -807,14 +807,14 @@ onMounted(async () => {
         <div class="flex gap-4 mt-6">
           <button 
             @click="mostrarModalLivro = false; limparSelecao(); buscaLivro = ''; resultadosBusca = [];" 
-            class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-full font-bold hover:bg-gray-400 transition"
+            class="botao flex-1 bg-vermelho"
           >
             Cancelar
           </button>
           <button 
             @click="salvarLivroSemana" 
             :disabled="!livroSelecionado"
-            class="flex-1 bg-roxo text-white px-6 py-3 rounded-full font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1 botao disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Confirmar Seleção
           </button>

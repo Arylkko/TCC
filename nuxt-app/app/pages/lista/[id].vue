@@ -475,14 +475,14 @@ async function adicionarLivro() {
         <div class="flex gap-4 mt-6">
           <button 
             @click="mostrarModalLivro = false; limparSelecao(); buscaLivro = ''; resultadosBusca = [];" 
-            class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-full font-bold hover:bg-gray-400 transition border-0"
+            class="flex-1 botao bg-vermelho"
           >
             Cancelar
           </button>
           <button 
             @click="adicionarLivro" 
             :disabled="!livroSelecionado"
-            class="flex-1 bg-roxo text-white px-6 py-3 rounded-full font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed border-0"
+            class="flex-1 botao disabled:opacity-50 disabled:cursor-not-allowed border-0"
           >
             Adicionar à Lista
           </button>
