@@ -586,7 +586,7 @@ function criarNovaLista() {
 }
 
 function criarNovaComunidade() {
-  router.push("/criarcomunidade");
+  router.push("/criar-comunidade");
 }
 
 // Função de Logout
