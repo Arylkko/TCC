@@ -388,12 +388,10 @@ async function adicionarLivro() {
           </div>
         </div>
       </div>
-    </main>
-
-    <!-- Modal Selecionar Livro -->
+    </main>    <!-- Modal Selecionar Livro -->
     <div v-if="mostrarModalLivro" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-[#f3eddb] rounded-[30px] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-incipit-card">
-        <h3 class="text-2xl font-display text-[#3d3131] mb-6 text-center">Adicionar Livro à Lista</h3>
+      <div class="bg-incipit-card rounded-[30px] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <h3 class="text-2xl font-display text-texto mb-6 text-center">Adicionar Livro à Lista</h3>
         
         <!-- Campo de Busca -->
         <div class="mb-6">
@@ -403,7 +401,7 @@ async function adicionarLivro() {
               @input="buscarLivrosAPI"
               type="text" 
               placeholder="Digite o nome do livro para buscar..."
-              class="w-full bg-incipit-card rounded-xl box-border p-4 pr-12 border-none outline-none focus:ring-2 focus:ring-roxo"
+              class="w-full bg-incipit-fundo rounded-xl box-border p-4 pr-12 border-none outline-none focus:ring-2 focus:ring-roxo text-texto"
             />
             <div v-if="buscandoLivros" class="absolute right-4 top-1/2 -translate-y-1/2">
               <div class="i-mdi:loading animate-spin text-2xl text-roxo"></div>
@@ -412,7 +410,7 @@ async function adicionarLivro() {
               <div class="i-mdi:magnify text-2xl text-roxo/50"></div>
             </div>
           </div>
-          <p class="text-xs mt-2 ml-2 opacity-60">Busque por título, autor ou ISBN</p>
+          <p class="text-xs mt-2 ml-2 text-texto/60">Busque por título, autor ou ISBN</p>
         </div>
 
         <!-- Livro Selecionado -->
@@ -425,13 +423,13 @@ async function adicionarLivro() {
               class="w-16 h-24 object-cover rounded-lg shadow-md"
             />
             <div class="flex-1">
-              <h4 class="font-bold text-lg">{{ livroSelecionado.Nome }}</h4>
-              <p class="text-sm opacity-70">{{ livroSelecionado.Autor }}</p>
+              <h4 class="font-bold text-lg text-texto">{{ livroSelecionado.Nome }}</h4>
+              <p class="text-sm text-texto/70">{{ livroSelecionado.Autor }}</p>
               <p class="text-xs mt-1 text-roxo font-bold">✓ Selecionado</p>
             </div>
             <button 
               @click="limparSelecao"
-              class="text-red-500 hover:text-red-700 border-0"
+              class="text-red-500 hover:text-red-700 border-0 cursor-pointer bg-transparent"
             >
               <div class="i-mdi:close text-2xl"></div>
             </button>
@@ -440,12 +438,12 @@ async function adicionarLivro() {
 
         <!-- Resultados da Busca -->
         <div v-if="resultadosBusca.length > 0 && !livroSelecionado" class="mb-6 max-h-96 overflow-y-auto space-y-2">
-          <p class="text-sm font-bold mb-3">Resultados da busca:</p>
+          <p class="text-sm font-bold mb-3 text-texto">Resultados da busca:</p>
           <div 
             v-for="livro in resultadosBusca" 
             :key="livro.googleId"
             @click="selecionarLivro(livro)"
-            class="flex gap-3 p-3 bg-incipit-card rounded-xl hover:bg-roxo/20 cursor-pointer transition"
+            class="flex gap-3 p-3 bg-incipit-fundo rounded-xl hover:bg-roxo/20 cursor-pointer transition"
           >
             <img 
               v-if="livro.capa" 
@@ -453,20 +451,20 @@ async function adicionarLivro() {
               :alt="livro.nome"
               class="w-12 h-16 object-cover rounded shadow-sm"
             />
-            <div class="w-12 h-16 bg-gray-200 rounded flex items-center justify-center" v-else>
-              <div class="i-mdi:book text-gray-400"></div>
+            <div class="w-12 h-16 bg-incipit-base rounded flex items-center justify-center" v-else>
+              <div class="i-mdi:book text-texto/40"></div>
             </div>
             <div class="flex-1 min-w-0">
-              <h4 class="font-bold text-sm truncate">{{ livro.nome }}</h4>
-              <p class="text-xs opacity-70 truncate">{{ livro.autor }}</p>
-              <p class="text-xs opacity-50">{{ livro.anoPublicacao }}</p>
+              <h4 class="font-bold text-sm truncate text-texto">{{ livro.nome }}</h4>
+              <p class="text-xs text-texto/70 truncate">{{ livro.autor }}</p>
+              <p class="text-xs text-texto/50">{{ livro.anoPublicacao }}</p>
             </div>
             <div class="i-mdi:chevron-right text-2xl text-roxo/50"></div>
           </div>
         </div>
 
         <!-- Mensagem vazia -->
-        <div v-if="buscaLivro && resultadosBusca.length === 0 && !buscandoLivros && !livroSelecionado" class="text-center py-8 opacity-50">
+        <div v-if="buscaLivro && resultadosBusca.length === 0 && !buscandoLivros && !livroSelecionado" class="text-center py-8 text-texto/50">
           <div class="i-mdi:book-search text-5xl mb-2"></div>
           <p>Nenhum livro encontrado</p>
         </div>
@@ -475,7 +473,7 @@ async function adicionarLivro() {
         <div class="flex gap-4 mt-6">
           <button 
             @click="mostrarModalLivro = false; limparSelecao(); buscaLivro = ''; resultadosBusca = [];" 
-            class="flex-1 botao bg-vermelho"
+            class="flex-1 bg-red-500 text-branco py-3 px-6 rounded-full border-0 hover:bg-red-600 transition cursor-pointer font-medium"
           >
             Cancelar
           </button>
