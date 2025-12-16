@@ -82,7 +82,7 @@
           </h1>
 
           <div
-            class="text-lg leading-relaxed text-texto/90 whitespace-pre-wrap break-all font-serif"
+            class="text-lg leading-relaxed text-texto/90 whitespace-pre-wrap break-all font-sono"
           >
             {{ comentario.conteudo }}
           </div>
@@ -252,8 +252,8 @@ const nomeOrigem = computed(() => {
   }
   
   // Verifica se tem comunidade expandida
-  if (comentario.value.expand?.comunidade?.Nome) {
-    return comentario.value.expand.comunidade.Nome;
+  if (comentario.value.expand?.comunidade?.nome) {
+    return comentario.value.expand.comunidade.nome;
   }
   
   return "Local Desconhecido";
