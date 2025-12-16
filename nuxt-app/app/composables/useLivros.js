@@ -2,11 +2,10 @@ export const useLivros = () => {
   const { $pb } = useNuxtApp();
   const config = useRuntimeConfig();
 
-  // ✅ CACHE GLOBAL para evitar requisições duplicadas à API do Google Books
   const cacheGoogleBooks = new Map();
-  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos (mais tempo que useHome)
+  const CACHE_DURATION = 10 * 60 * 1000; 
 
-  // Limpar cache antigo periodicamente
+ 
   const limparCacheAntigo = () => {
     const agora = Date.now();
     for (const [isbn, cached] of cacheGoogleBooks.entries()) {
@@ -16,7 +15,7 @@ export const useLivros = () => {
     }
   };
 
-  // Busca informações do livro na API do Google Books usando ISBN
+  
   const buscarDadosLivroAPI = async (isbn) => {
     if (!isbn) {
       return { sucesso: false, erro: 'ISBN não fornecido' };
@@ -93,7 +92,7 @@ export const useLivros = () => {
           timestamp: agora
         });
 
-        // Limpar cache antigo a cada 20 requisições
+        
         if (cacheGoogleBooks.size % 20 === 0) {
           limparCacheAntigo();
         }
@@ -101,7 +100,7 @@ export const useLivros = () => {
         return resultado;
       }
       
-      // Se não encontrou, também cachear a resposta negativa
+      
       const resultadoNaoEncontrado = { 
         sucesso: false, 
         erro: 'Livro não encontrado na API' 

@@ -1,10 +1,10 @@
-// Composable para gerenciar status de leitura
+
 export const useStatus = () => {
   const { $pb } = useNuxtApp();
   const { ganharXPLivroLido } = useXP();
   const { verificarConquistaLeitorNato } = useConquistas();
 
-  // Opções de status disponíveis
+  
   const OPCOES_STATUS = [
     { valor: 'Pretendo ler', label: 'Pretendo ler' },
     { valor: 'Lendo', label: 'Lendo' },
@@ -30,7 +30,7 @@ export const useStatus = () => {
   // Define ou atualiza o status de leitura
   const definirStatus = async (livroId, usuarioId, nomeStatus) => {
     try {
-      // Verifica se o status já existe
+     
       const statusExistente = await buscarStatus(livroId, usuarioId);
 
       if (statusExistente.sucesso) {
@@ -40,8 +40,8 @@ export const useStatus = () => {
         const status = await $pb.collection('status').update(statusExistente.dados.id, {
           nome: nomeStatus
         });
-          // Ganhar XP APENAS se estava em outro status e mudou para "Lido" pela PRIMEIRA VEZ
-        // Verifica se o campo xp_lido_recebido não existe ou é false
+         
+       
         if (nomeStatus === 'Lido' && statusAnterior !== 'Lido' && !statusExistente.dados.xp_lido_recebido) {
           await ganharXPLivroLido(usuarioId);
           
@@ -64,13 +64,13 @@ export const useStatus = () => {
           nome: nomeStatus,
           usuario: usuarioId,
           livro: livroId,
-          xp_lido_recebido: nomeStatus === 'Lido' // Marca como true se já criar como Lido
+          xp_lido_recebido: nomeStatus === 'Lido' 
         });
-          // Ganhar XP se criar como "Lido"
+          
         if (nomeStatus === 'Lido') {
           await ganharXPLivroLido(usuarioId);
           
-          // Verificar conquista "Leitor Nato"
+         
           const resultadoConquista = await verificarConquistaLeitorNato(usuarioId);
           if (resultadoConquista.sucesso && !resultadoConquista.japossuia) {
             return { sucesso: true, dados: status, atualizado: false, conquistaObtida: resultadoConquista.conquista };

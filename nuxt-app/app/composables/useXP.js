@@ -1,4 +1,4 @@
-// Composable para gerenciar sistema de XP dos usuários
+
 export const useXP = () => {
   const { $pb } = useNuxtApp();
 
@@ -14,19 +14,19 @@ export const useXP = () => {
     CRIAR_LISTA: 50
   };
 
-  // Função principal para adicionar XP ao usuário
+  
   const adicionarXP = async (usuarioId, quantidade) => {
     try {
       if (!usuarioId || quantidade <= 0) {
         return { sucesso: false, erro: 'Parâmetros inválidos' };
       }
 
-      // Buscar usuário atual
+      
       const usuario = await $pb.collection('users').getOne(usuarioId);
       const xpAtual = usuario.XP || 0;
       const novoXP = xpAtual + quantidade;
 
-      // Atualizar XP
+      
       const atualizado = await $pb.collection('users').update(usuarioId, {
         XP: novoXP
       });

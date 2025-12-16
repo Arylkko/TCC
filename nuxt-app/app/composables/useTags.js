@@ -1,4 +1,4 @@
-// Composable para gerenciar tags/gêneros de livros
+
 export const useTags = () => {
   const { $pb } = useNuxtApp();
 
@@ -15,7 +15,7 @@ export const useTags = () => {
     }
   };
 
-  // Busca tags de um livro específico
+  // Busca tags de um livro especifico
   const buscarTagsLivro = async (livroId) => {
     try {
       const livro = await $pb.collection('livro').getOne(livroId, {
@@ -33,13 +33,13 @@ export const useTags = () => {
     }
   };
 
-  // Cria uma nova tag (verifica duplicatas pelo nome)
+  // Cria uma nova tag)
   const criarTag = async (nomeTag) => {
     try {
-      // Normaliza o nome da tag (remove espaços extras, primeira letra maiúscula)
+      
       const nomeNormalizado = nomeTag.trim().toLowerCase();
       
-      // Verifica se já existe uma tag com esse nome
+      
       const tagsExistentes = await $pb.collection('tags').getList(1, 1, {
         filter: `nome ~ "${nomeNormalizado}"`
       });
@@ -66,16 +66,16 @@ export const useTags = () => {
   // Adiciona uma tag a um livro
   const adicionarTagAoLivro = async (livroId, tagId) => {
     try {
-      // Busca as tags atuais do livro
+     
       const livro = await $pb.collection('livro').getOne(livroId);
       const tagsAtuais = livro.tags || [];
 
-      // Verifica se a tag já está associada
+      
       if (tagsAtuais.includes(tagId)) {
         return { sucesso: true, dados: livro, jaAdicionada: true };
       }
 
-      // Adiciona a nova tag
+      
       const novasTags = [...tagsAtuais, tagId];
       const livroAtualizado = await $pb.collection('livro').update(livroId, {
         tags: novasTags

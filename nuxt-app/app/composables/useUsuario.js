@@ -15,16 +15,16 @@ export const useUsuario = () => {
   // Atualizar perfil do usuário
   const atualizarPerfil = async (userId, dados) => {
     try {
-      // Se for apenas texto (Description com D maiúsculo), usa objeto simples
+      
       if (dados.description !== undefined && !dados.avatar) {
         const usuarioAtualizado = await $pb.collection('users').update(userId, {
-          Description: dados.description  // Campo é Description com D maiúsculo!
+          Description: dados.description  
         });
         
         return { sucesso: true, dados: usuarioAtualizado };
       }
       
-      // Se tiver arquivo (avatar), usa FormData
+    
       const formData = new FormData();
       
       if (dados.description !== undefined) {
@@ -52,7 +52,7 @@ export const useUsuario = () => {
     return Math.floor(xp / 100) + 1;
   };
 
-  // Calcular XP necessário para o próximo nível
+
   const xpParaProximoNivel = (xp = 0) => {
     const nivelAtual = calcularNivel(xp);
     const xpProximoNivel = nivelAtual * 100;
@@ -69,8 +69,8 @@ export const useUsuario = () => {
       });
 
       const conquistasComDados = usuarioConquistas.items.map(item => ({
-        id: item.expand?.conquista?.id || item.id, // ID da conquista, não da relação
-        conquistaId: item.expand?.conquista?.id, // ID real da conquista
+        id: item.expand?.conquista?.id || item.id, 
+        conquistaId: item.expand?.conquista?.id, 
         nome: item.expand?.conquista?.nome || 'Conquista',
         icone: item.expand?.conquista?.icone || '🏆',
         descricao: item.expand?.conquista?.descricao || '',
@@ -90,7 +90,7 @@ export const useUsuario = () => {
       const statusLidos = await $pb.collection('status').getList(1, 1, {
         filter: `usuario = "${userId}" && nome = "Lido"`,
         fields: 'id',
-        $autoCancel: false  // Evita auto-cancelamento
+        $autoCancel: false  
       });
 
       return { sucesso: true, total: statusLidos.totalItems || 0 };
@@ -141,7 +141,7 @@ export const useUsuario = () => {
   const buscarComunidadesUsuario = async (userId) => {
     try {
       const comunidades = await $pb.collection('comunidade').getList(1, 50, {
-        filter: `membros ~ "${userId}"`,  // Operador ~ para verificar se userId está no array membros
+        filter: `membros ~ "${userId}"`, 
         sort: '-created',
         $autoCancel: false
       });
@@ -149,7 +149,7 @@ export const useUsuario = () => {
       return { sucesso: true, dados: comunidades.items || [] };  // Retorna .items
     } catch (error) {
       console.error('Erro ao buscar comunidades:', error);
-      return { sucesso: true, dados: [] };  // Retorna array vazio mas com sucesso para não travar
+      return { sucesso: true, dados: [] };  
     }
   };
 
