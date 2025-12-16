@@ -3,7 +3,56 @@ export const useSearch = () => {
   const apiKey = config.public.googleBooksApiKey;
 
   /**
-   * Busca livros na API do Google Books
+   * Busca livro por ISBN na API do Google Books
+   * @param {string} isbn - ISBN do livro
+   * @returns {Promise<Object>} Resultado da busca
+   */
+  const buscarLivroPorISBN = async (isbn) => {
+    if (!isbn || !isbn.trim()) {
+      return { 
+        sucesso: false, 
+        erro: 'ISBN vazio' 
+      };
+    }
+
+    try {
+      const params = new URLSearchParams({
+        q: `isbn:${isbn}`,
+        key: apiKey,
+        maxResults: '1'
+      });
+
+      const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+        return {
+          sucesso: true,
+          dados: data.items,
+          totalItems: data.totalItems || 0
+        };
+      }
+
+      return {
+        sucesso: false,
+        erro: 'Livro não encontrado',
+        dados: [],
+        totalItems: 0
+      };
+    } catch (error) {
+      console.error('Erro ao buscar livro por ISBN:', error);
+      return {
+        sucesso: false,
+        erro: 'Erro ao conectar com a API do Google Books',
+        dados: [],
+        totalItems: 0
+      };
+    }
+  };
+
+  /**
+   * Busca livros na API do Google Books com filtros otimizados
    * @param {string} searchTerm - Termo de busca
    * @param {number} startIndex - Índice inicial para paginação
    * @param {number} maxResults - Quantidade máxima de resultados
@@ -18,15 +67,47 @@ export const useSearch = () => {
     }
 
     try {
-      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchTerm)}&startIndex=${startIndex}&maxResults=${maxResults}&key=${apiKey}`;
-    
+      // Melhora a busca usando intitle para priorizar títulos
+      // e adiciona filtros para português e apenas livros
+      const termoBusca = `intitle:${searchTerm}`;
+      
+      const params = new URLSearchParams({
+        q: termoBusca,
+        startIndex: startIndex.toString(),
+        maxResults: maxResults.toString(),
+        key: apiKey,
+        langRestrict: 'pt', // Apenas livros em português
+        printType: 'books', // Apenas livros (exclui revistas, etc)
+        orderBy: 'relevance' // Ordena por relevância
+      });
+
+      const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`;
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.items && Array.isArray(data.items)) {
+        // Filtra ainda mais para garantir apenas livros válidos
+        const livrosFiltrados = data.items.filter(item => {
+          const volume = item?.volumeInfo;
+          if (!volume) return false;
+          
+          // Remove itens sem título ou ISBN
+          const temTitulo = !!volume.title;
+          const temISBN = !!(volume.industryIdentifiers?.length);
+          
+          // Remove revistas e periódicos que podem passar pelo filtro
+          const tipoInvalido = volume.categories?.some(cat => 
+            cat.toLowerCase().includes('magazine') || 
+            cat.toLowerCase().includes('journal') ||
+            cat.toLowerCase().includes('revista')
+          );
+          
+          return temTitulo && temISBN && !tipoInvalido;
+        });
+
         return {
           sucesso: true,
-          dados: data.items,
+          dados: livrosFiltrados,
           totalItems: data.totalItems || 0
         };
       }
@@ -49,6 +130,74 @@ export const useSearch = () => {
   };
 
   /**
+   * Busca avançada com múltiplos critérios
+   * Útil para buscas mais específicas
+   */
+  const buscarLivrosAvancado = async (opcoes = {}) => {
+    const {
+      titulo = '',
+      autor = '',
+      isbn = '',
+      categoria = '',
+      startIndex = 0,
+      maxResults = 20
+    } = opcoes;
+
+    let termoBusca = '';
+    
+    if (titulo) termoBusca += `intitle:${titulo}`;
+    if (autor) termoBusca += ` inauthor:${autor}`;
+    if (isbn) termoBusca += ` isbn:${isbn}`;
+    if (categoria) termoBusca += ` subject:${categoria}`;
+
+    if (!termoBusca.trim()) {
+      return {
+        sucesso: false,
+        erro: 'Nenhum critério de busca fornecido'
+      };
+    }
+
+    const params = new URLSearchParams({
+      q: termoBusca.trim(),
+      startIndex: startIndex.toString(),
+      maxResults: maxResults.toString(),
+      key: config.public.googleBooksApiKey,
+      langRestrict: 'pt',
+      printType: 'books',
+      orderBy: 'relevance'
+    });
+
+    try {
+      const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.items && Array.isArray(data.items)) {
+        return {
+          sucesso: true,
+          dados: data.items,
+          totalItems: data.totalItems || 0
+        };
+      }
+
+      return {
+        sucesso: false,
+        erro: 'Nenhum livro encontrado',
+        dados: [],
+        totalItems: 0
+      };
+    } catch (error) {
+      console.error('Erro na busca avançada:', error);
+      return {
+        sucesso: false,
+        erro: 'Erro ao conectar com a API',
+        dados: [],
+        totalItems: 0
+      };
+    }
+  };
+
+  /**
    * Extrai ISBN de um item da API do Google Books
    * @param {Object} item - Item retornado da API
    * @returns {string} ISBN ou string vazia
@@ -59,6 +208,14 @@ export const useSearch = () => {
     }
 
     const identifiers = item.volumeInfo.industryIdentifiers;
+    // Prioriza ISBN_13, depois ISBN_10
+    const isbn13 = identifiers.find(i => i.type === 'ISBN_13');
+    if (isbn13) return isbn13.identifier;
+    
+    const isbn10 = identifiers.find(i => i.type === 'ISBN_10');
+    if (isbn10) return isbn10.identifier;
+    
+    // Fallback para qualquer identificador disponível
     const isbnObj = identifiers.find(i => i.type && i.identifier);
     return isbnObj ? isbnObj.identifier : '';
   };
@@ -105,14 +262,18 @@ export const useSearch = () => {
       descricao: volume.description || '',
       editora: volume.publisher || '',
       dataPublicacao: volume.publishedDate || '',
-      isbn: extrairISBN(item)
+      isbn: extrairISBN(item),
+      idioma: volume.language || 'pt',
+      categorias: volume.categories || []
     };
   };
 
   return {
     buscarLivros,
+    buscarLivroPorISBN,
+    buscarLivrosAvancado,
     extrairISBN,
     prepararDadosLivro,
     formatarInfoLivro
   };
-};
+};  

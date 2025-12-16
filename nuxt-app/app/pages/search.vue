@@ -41,7 +41,7 @@ const hasMore = ref(true);
 // Composables
 const { salvarLivro } = useLivros();
 const { buscarListasUsuario, adicionarLivroNaLista } = useListas();
-const { buscarLivros, prepararDadosLivro } = useSearch();
+const { buscarLivros, buscarLivroPorISBN, prepararDadosLivro } = useSearch();
 
 // Watch para aplicar ordenação automaticamente
 watch([filtroAtivo, ordenacaoData, ordenacaoNota], () => {
@@ -122,9 +122,9 @@ async function carregarLivrosRecomendados() {
     // Converter livros do PocketBase para o formato do Google Books
     const livrosConvertidos = await Promise.all(
       livrosPB.items.map(async (livro) => {
-        // Buscar dados completos da API do Google Books
+        // Buscar dados completos da API do Google Books usando ISBN
         try {
-          const resultado = await buscarLivros(livro.ISBN, 0, 1);
+          const resultado = await buscarLivroPorISBN(livro.ISBN);
           if (resultado.sucesso && resultado.dados.length > 0) {
             const livroGoogle = resultado.dados[0];
             // Adicionar tags do PocketBase

@@ -260,12 +260,17 @@
               :key="nota.id"
               @click="ExpandirResenha(nota)"
               class="mb-4"
-            >              <div class="bg-incipit-card rounded-[30px] shadow-lg p-6 cursor-pointer hover:shadow-xl transition">
+            >
+              <div class="bg-incipit-card rounded-[30px] shadow-lg p-6 cursor-pointer hover:shadow-xl transition">
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
-                    <h3 v-if="!nota.titulo" class="text-lg font-semibold text-texto m-0">Resenha</h3>
-                    <h3 v-else class="text-lg font-semibold text-roxo m-0">{{ nota.titulo }}</h3>
-                                   <div class="flex gap-1">
+                    <!-- AQUI: Mostra o título da resenha se existir, senão mostra "Resenha" -->
+                    <h3 v-if="nota.titulo && nota.titulo.trim()" class="text-lg font-semibold text-roxo m-0">
+                      {{ nota.titulo }}
+                    </h3>
+                    <h3 v-else class="text-lg font-semibold text-texto m-0">Resenha</h3>
+                    
+                    <div class="flex gap-1">
                       <div
                         v-for="n in 5"
                         :key="n"
@@ -436,13 +441,15 @@
                       title="Deletar comentário"
                     >
                       <div class="i-mdi:close text-sm"></div>
-                    </button>                    <h4 class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
-                      {{ comentario.expand?.autor?.name || "Leitor" }} diz:
-                    </h4>
-                    
-                    <h3 v-if="comentario.titulo" class="font-bold text-roxo text-lg mb-2 mt-1">
+                    </button>
+
+                    <!-- AQUI: Mostra o título do comentário se existir, senão mostra "user diz:" -->
+                    <h3 v-if="comentario.titulo && comentario.titulo.trim()" class="font-bold text-roxo text-lg mb-2 mt-0">
                       {{ comentario.titulo }}
                     </h3>
+                    <h4 v-else class="font-bold text-[#3d3131] mb-1 mt-0 text-sm">
+                      {{ comentario.expand?.autor?.name || "Leitor" }} diz:
+                    </h4>
                     
                     <!-- Conteúdo com/sem spoiler -->
                     <div v-if="comentario.spoiler && !comentarioRevelado(comentario.id)"
@@ -504,7 +511,8 @@
               </div>
             </div>
           </div>
-        </div>      </div>
+        </div>
+      </div>
     </main>
     
     <!-- Notificação de Conquista -->
